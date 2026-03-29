@@ -1,672 +1,988 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Madar Wealth — Portfolio Dashboard</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7"></script>
-<style>
-/* --- LOCK SCREEN --- */
-.lock-screen {
-  position: fixed; inset: 0; z-index: 9999;
-  background: linear-gradient(135deg, #0c1222 0%, #1a1d2e 50%, #0c1222 100%);
-  display: flex; align-items: center; justify-content: center;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-}
-.lock-screen.unlocked { display: none; }
-.lock-box {
-  text-align: center; padding: 48px 40px; max-width: 380px; width: 90%;
-}
-.lock-logo {
-  width: 56px; height: 56px; border-radius: 14px;
-  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
-  display: flex; align-items: center; justify-content: center;
-  margin: 0 auto 24px;
-}
-.lock-title {
-  color: #fff; font-size: 1.4rem; font-weight: 700;
-  letter-spacing: -0.02em; margin-bottom: 6px;
-}
-.lock-sub {
-  color: rgba(255,255,255,0.4); font-size: 0.85rem; margin-bottom: 32px;
-}
-.lock-input {
-  width: 100%; padding: 14px 18px; border-radius: 10px;
-  border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.06);
-  color: #fff; font-size: 1rem; text-align: center;
-  letter-spacing: 0.2em; font-family: inherit; outline: none;
-  transition: 0.2s ease;
-}
-.lock-input::placeholder { color: rgba(255,255,255,0.25); letter-spacing: 0.05em; }
-.lock-input:focus { border-color: rgba(59,130,246,0.5); box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
-.lock-input.error { border-color: #ef4444; animation: shake 0.4s ease; }
-.lock-btn {
-  width: 100%; padding: 13px; margin-top: 14px; border-radius: 10px;
-  background: #1e40af; color: #fff; font-size: 0.92rem; font-weight: 600;
-  border: none; cursor: pointer; font-family: inherit;
-  transition: 0.2s ease;
-}
-.lock-btn:hover { background: #1e3a8a; }
-.lock-error {
-  color: #f87171; font-size: 0.82rem; margin-top: 12px;
-  min-height: 20px;
-}
-@keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)} }
-</style>
-<style>
-/* ═══════════════════════════════════════════════════════════════
-   MADAR WEALTH — PREMIUM PORTFOLIO DASHBOARD
-   Design: Private Banking / Family Office / Institutional Grade
-   ═══════════════════════════════════════════════════════════════ */
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wealth Management Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-/* --- CSS RESET & VARIABLES --- */
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root {
+      --navy: #0f172a;
+      --dark-navy: #0a0e1a;
+      --white: #ffffff;
+      --light-gray: #f8fafc;
+      --border-gray: #e2e8f0;
+      --text-dark: #1e293b;
+      --text-light: #64748b;
+      --primary-blue: #3b82f6;
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --sidebar-width: 280px;
+    }
 
-:root {
-  /* Palette — Light mode (Institutional) */
-  --bg-body: #f5f6f8;
-  --bg-card: #ffffff;
-  --bg-card-hover: #fafbfc;
-  --bg-header: #0c1222;
-  --bg-sidebar: #111827;
-  --bg-table-header: #f0f2f5;
-  --bg-table-stripe: #f8f9fb;
-  --bg-badge: #eef1f6;
-  --bg-input: #f5f6f8;
-  --bg-modal: rgba(0,0,0,0.5);
+    body.dark-theme {
+      --navy: #0f172a;
+      --white: #1a1f2e;
+      --light-gray: #0f1419;
+      --border-gray: #2d3748;
+      --text-dark: #f1f5f9;
+      --text-light: #94a3b8;
+    }
 
-  --border: #e2e5ea;
-  --border-light: #eef0f3;
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif;
+      background-color: var(--light-gray);
+      color: var(--text-dark);
+      transition: background-color 0.3s, color 0.3s;
+    }
 
-  --text-primary: #1a1d23;
-  --text-secondary: #5a6170;
-  --text-tertiary: #8b919e;
-  --text-inverse: #ffffff;
-  --text-link: #2563eb;
+    .lock-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
 
-  --accent: #1e40af;
-  --accent-light: #3b82f6;
-  --accent-bg: #eff6ff;
+    .lock-screen.hidden {
+      display: none;
+    }
 
-  --green: #059669;
-  --green-bg: #ecfdf5;
-  --green-text: #065f46;
-  --red: #dc2626;
-  --red-bg: #fef2f2;
-  --red-text: #991b1b;
-  --amber: #d97706;
-  --amber-bg: #fffbeb;
+    .lock-container {
+      text-align: center;
+    }
 
-  --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-md: 0 2px 8px rgba(0,0,0,0.06);
-  --shadow-lg: 0 4px 16px rgba(0,0,0,0.08);
-  --shadow-xl: 0 8px 32px rgba(0,0,0,0.12);
+    .lock-logo {
+      font-size: 3em;
+      margin-bottom: 20px;
+    }
 
-  --radius-sm: 6px;
-  --radius: 10px;
-  --radius-lg: 14px;
-  --radius-xl: 20px;
+    .lock-title {
+      color: white;
+      font-size: 24px;
+      margin-bottom: 30px;
+      font-weight: 600;
+    }
 
-  --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-  --font-mono: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    .lock-input {
+      width: 300px;
+      padding: 12px 16px;
+      border: 2px solid #3b82f6;
+      border-radius: 8px;
+      font-size: 16px;
+      background: rgba(255,255,255,0.1);
+      color: white;
+      transition: all 0.3s;
+    }
 
-  --transition: 0.2s ease;
-}
+    .lock-input::placeholder {
+      color: rgba(255,255,255,0.5);
+    }
 
-/* Dark mode */
-.dark {
-  --bg-body: #0b0f19;
-  --bg-card: #111827;
-  --bg-card-hover: #1a2233;
-  --bg-header: #060a13;
-  --bg-table-header: #1a2233;
-  --bg-table-stripe: #0f1525;
-  --bg-badge: #1e293b;
-  --bg-input: #1a2233;
-  --border: #1e293b;
-  --border-light: #1a2233;
-  --text-primary: #f1f5f9;
-  --text-secondary: #94a3b8;
-  --text-tertiary: #64748b;
-  --accent-bg: #172554;
-  --green-bg: #052e16;
-  --green-text: #86efac;
-  --red-bg: #450a0a;
-  --red-text: #fca5a5;
-  --shadow-sm: 0 1px 2px rgba(0,0,0,0.2);
-  --shadow-md: 0 2px 8px rgba(0,0,0,0.3);
-  --shadow-lg: 0 4px 16px rgba(0,0,0,0.4);
-}
+    .lock-input:focus {
+      outline: none;
+      background: rgba(255,255,255,0.15);
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.3);
+    }
 
-/* --- BASE TYPOGRAPHY --- */
-html { font-size: 14px; -webkit-font-smoothing: antialiased; }
-body {
-  font-family: var(--font);
-  background: var(--bg-body);
-  color: var(--text-primary);
-  line-height: 1.5;
-  min-height: 100vh;
-}
+    .lock-button {
+      margin-top: 16px;
+      padding: 12px 32px;
+      background: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
 
-/* --- LAYOUT --- */
-.app { display: flex; flex-direction: column; min-height: 100vh; }
+    .lock-button:hover {
+      background: #2563eb;
+    }
 
-/* Top Bar */
-.topbar {
-  background: var(--bg-header);
-  color: var(--text-inverse);
-  padding: 0 32px;
-  height: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  position: sticky; top: 0; z-index: 100;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-}
-.topbar-brand {
-  display: flex; align-items: center; gap: 12px;
-  font-size: 1.1rem; font-weight: 600; letter-spacing: -0.02em;
-}
-.topbar-brand svg { opacity: 0.9; }
-.topbar-actions { display: flex; align-items: center; gap: 8px; }
-.topbar-date {
-  font-size: 0.82rem; color: rgba(255,255,255,0.5);
-  margin-right: 16px; font-variant-numeric: tabular-nums;
-}
+    .app {
+      display: flex;
+      min-height: 100vh;
+    }
 
-/* Icon button */
-.icon-btn {
-  width: 36px; height: 36px; border-radius: var(--radius-sm);
-  background: transparent; border: none; color: rgba(255,255,255,0.6);
-  cursor: pointer; display: flex; align-items: center; justify-content: center;
-  transition: var(--transition);
-}
-.icon-btn:hover { background: rgba(255,255,255,0.08); color: #fff; }
-.icon-btn svg { width: 18px; height: 18px; }
+    .sidebar {
+      width: var(--sidebar-width);
+      background: var(--navy);
+      color: white;
+      padding: 24px 16px;
+      overflow-y: auto;
+      position: fixed;
+      height: 100vh;
+      left: 0;
+      top: 0;
+      transition: transform 0.3s;
+    }
 
-/* Main content */
-.main { flex: 1; padding: 24px 32px 48px; max-width: 1600px; margin: 0 auto; width: 100%; }
+    .sidebar-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 32px;
+      font-size: 18px;
+      font-weight: 700;
+    }
 
-/* --- TABS --- */
-.tabs {
-  display: flex; gap: 2px; background: var(--bg-card);
-  border-radius: var(--radius); padding: 4px;
-  box-shadow: var(--shadow-sm); border: 1px solid var(--border);
-  margin-bottom: 24px; overflow-x: auto;
-}
-.tab {
-  padding: 10px 20px; border-radius: var(--radius-sm);
-  font-size: 0.88rem; font-weight: 500; color: var(--text-secondary);
-  cursor: pointer; background: transparent; border: none;
-  white-space: nowrap; transition: var(--transition);
-  font-family: var(--font);
-}
-.tab:hover { color: var(--text-primary); background: var(--bg-body); }
-.tab.active {
-  background: var(--accent); color: #fff; font-weight: 600;
-  box-shadow: 0 1px 3px rgba(30,64,175,0.3);
-}
+    .sidebar-nav {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
 
-/* --- KPI CARDS --- */
-.kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 16px; margin-bottom: 24px;
-}
-.kpi {
-  background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 20px 22px;
-  box-shadow: var(--shadow-sm); transition: var(--transition);
-}
-.kpi:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
-.kpi-label {
-  font-size: 0.78rem; font-weight: 500; color: var(--text-tertiary);
-  text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;
-}
-.kpi-value {
-  font-size: 1.65rem; font-weight: 700; letter-spacing: -0.03em;
-  line-height: 1.2; font-variant-numeric: tabular-nums;
-}
-.kpi-sub {
-  font-size: 0.82rem; margin-top: 6px; font-weight: 500;
-  display: flex; align-items: center; gap: 4px;
-}
-.kpi-value.pos, .kpi-sub.pos { color: var(--green); }
-.kpi-value.neg, .kpi-sub.neg { color: var(--red); }
+    .nav-item {
+      padding: 12px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 14px;
+      color: #cbd5e1;
+      user-select: none;
+    }
 
-/* Accent KPI */
-.kpi.accent {
-  background: linear-gradient(135deg, #1e3a5f 0%, #0c1222 100%);
-  border-color: transparent; color: #fff;
-}
-.kpi.accent .kpi-label { color: rgba(255,255,255,0.6); }
-.kpi.accent .kpi-value { color: #fff; }
-.kpi.accent .kpi-sub.pos { color: #6ee7b7; }
-.kpi.accent .kpi-sub.neg { color: #fca5a5; }
+    .nav-item:hover {
+      background: rgba(59,130,246,0.2);
+    }
 
-/* --- CHART CONTAINERS --- */
-.chart-grid {
-  display: grid; gap: 16px; margin-bottom: 24px;
-}
-.chart-grid-2 { grid-template-columns: 1fr 1fr; }
-.chart-grid-3 { grid-template-columns: 1fr 1fr 1fr; }
-.chart-grid-1-2 { grid-template-columns: 1fr 2fr; }
-.chart-grid-2-1 { grid-template-columns: 2fr 1fr; }
+    .nav-item.active {
+      background: #3b82f6;
+      color: white;
+      font-weight: 600;
+    }
 
-.chart-card {
-  background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 20px;
-  box-shadow: var(--shadow-sm);
-}
-.chart-title {
-  font-size: 0.88rem; font-weight: 600; color: var(--text-primary);
-  margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
-}
-.chart-title .dot {
-  width: 8px; height: 8px; border-radius: 50%; display: inline-block;
-}
-.chart-wrap { position: relative; height: 280px; }
-.chart-wrap.short { height: 220px; }
-.chart-wrap.tall { height: 350px; }
+    .nav-icon {
+      font-size: 18px;
+      width: 20px;
+      text-align: center;
+    }
 
-/* --- TABLES --- */
-.table-card {
-  background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: var(--radius); overflow: hidden;
-  box-shadow: var(--shadow-sm); margin-bottom: 24px;
-}
-.table-header {
-  padding: 16px 20px; display: flex; align-items: center;
-  justify-content: space-between; border-bottom: 1px solid var(--border);
-}
-.table-title { font-size: 0.95rem; font-weight: 600; }
-.table-count {
-  font-size: 0.78rem; color: var(--text-tertiary);
-  background: var(--bg-badge); padding: 3px 10px; border-radius: 12px;
-}
+    .sidebar-footer {
+      position: absolute;
+      bottom: 24px;
+      width: 248px;
+      display: flex;
+      gap: 12px;
+    }
 
-/* Search + Filters bar */
-.filter-bar {
-  padding: 12px 20px; display: flex; align-items: center; gap: 10px;
-  border-bottom: 1px solid var(--border-light); flex-wrap: wrap;
-}
-.search-input {
-  flex: 1; min-width: 200px; padding: 8px 12px 8px 34px;
-  border: 1px solid var(--border); border-radius: var(--radius-sm);
-  font-size: 0.85rem; background: var(--bg-input); color: var(--text-primary);
-  font-family: var(--font); outline: none; transition: var(--transition);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%238b919e' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85zm-5.242.656a5 5 0 1 1 0-10 5 5 0 0 1 0 10z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat; background-position: 10px center;
-}
-.search-input:focus { border-color: var(--accent-light); box-shadow: 0 0 0 3px rgba(59,130,246,0.12); }
-.filter-select {
-  padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm);
-  font-size: 0.82rem; background: var(--bg-input); color: var(--text-primary);
-  font-family: var(--font); cursor: pointer; outline: none;
-}
+    .theme-toggle, .logout-btn {
+      padding: 8px 12px;
+      background: rgba(255,255,255,0.1);
+      border: none;
+      border-radius: 6px;
+      color: white;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.3s;
+      flex: 1;
+    }
 
-/* Table */
-.tbl { width: 100%; border-collapse: collapse; font-size: 0.83rem; }
-.tbl thead { position: sticky; top: 0; z-index: 2; }
-.tbl th {
-  background: var(--bg-table-header); padding: 10px 14px;
-  text-align: left; font-weight: 600; color: var(--text-secondary);
-  font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.04em;
-  border-bottom: 1px solid var(--border); cursor: pointer;
-  user-select: none; white-space: nowrap;
-}
-.tbl th:hover { color: var(--text-primary); }
-.tbl th .sort-arrow { font-size: 0.7rem; margin-left: 3px; opacity: 0.4; }
-.tbl th.sorted .sort-arrow { opacity: 1; color: var(--accent); }
-.tbl td {
-  padding: 10px 14px; border-bottom: 1px solid var(--border-light);
-  font-variant-numeric: tabular-nums; vertical-align: middle;
-}
-.tbl tbody tr { transition: var(--transition); }
-.tbl tbody tr:hover { background: var(--bg-card-hover); }
-.tbl tbody tr:nth-child(even) { background: var(--bg-table-stripe); }
-.tbl tbody tr:nth-child(even):hover { background: var(--bg-card-hover); }
+    .theme-toggle:hover, .logout-btn:hover {
+      background: rgba(255,255,255,0.2);
+    }
 
-.tbl .num { text-align: right; font-family: var(--font-mono); font-size: 0.82rem; }
-.tbl .pos { color: var(--green); }
-.tbl .neg { color: var(--red); }
-.tbl .bold { font-weight: 600; }
-.tbl .name-cell { max-width: 240px; }
-.tbl .name-main { font-weight: 600; font-size: 0.85rem; color: var(--text-primary); }
-.tbl .name-sub { font-size: 0.74rem; color: var(--text-tertiary); margin-top: 1px; }
+    .main {
+      margin-left: var(--sidebar-width);
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
 
-/* Badges */
-.badge {
-  display: inline-flex; align-items: center; padding: 2px 8px;
-  border-radius: 4px; font-size: 0.74rem; font-weight: 600;
-}
-.badge-green { background: var(--green-bg); color: var(--green-text); }
-.badge-red { background: var(--red-bg); color: var(--red-text); }
-.badge-blue { background: var(--accent-bg); color: var(--accent); }
-.badge-amber { background: var(--amber-bg); color: var(--amber); }
-.badge-neutral { background: var(--bg-badge); color: var(--text-secondary); }
+    .header {
+      background: var(--white);
+      border-bottom: 1px solid var(--border-gray);
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
 
-/* Progress bar for structured products */
-.prog-bar {
-  width: 100%; height: 6px; background: var(--border);
-  border-radius: 3px; overflow: hidden; margin-top: 4px;
-}
-.prog-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
-.prog-fill.green { background: var(--green); }
-.prog-fill.red { background: var(--red); }
-.prog-fill.amber { background: var(--amber); }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
 
-/* Weight bar */
-.weight-bar {
-  display: flex; align-items: center; gap: 8px;
-}
-.weight-track {
-  flex: 1; height: 4px; background: var(--border); border-radius: 2px;
-  overflow: hidden; min-width: 50px;
-}
-.weight-fill { height: 100%; background: var(--accent-light); border-radius: 2px; }
+    .portfolio-name {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text-dark);
+    }
 
-/* --- SECTION PANELS --- */
-.section { display: none; }
-.section.active { display: block; }
+    .portfolio-date {
+      font-size: 13px;
+      color: var(--text-light);
+    }
 
-/* --- STRUCTURED PRODUCT CARDS --- */
-.struct-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; margin-bottom: 24px; }
-.struct-card {
-  background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow-sm);
-}
-.struct-card-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
-.struct-name { font-weight: 700; font-size: 0.92rem; line-height: 1.3; max-width: 260px; }
-.struct-meta { font-size: 0.78rem; color: var(--text-tertiary); margin-top: 4px; }
-.struct-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 0.83rem; }
-.struct-row-label { color: var(--text-secondary); }
-.struct-row-val { font-weight: 600; font-variant-numeric: tabular-nums; }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
 
-/* --- GEOGRAPHIC MAP (SVG simplified) --- */
-.geo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
-.geo-bar-item {
-  display: flex; align-items: center; gap: 10px; padding: 8px 0;
-  border-bottom: 1px solid var(--border-light);
-}
-.geo-bar-item:last-child { border-bottom: none; }
-.geo-label { font-size: 0.83rem; font-weight: 500; min-width: 120px; }
-.geo-track { flex: 1; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
-.geo-fill { height: 100%; border-radius: 4px; }
-.geo-val { font-size: 0.82rem; font-weight: 600; min-width: 80px; text-align: right; font-variant-numeric: tabular-nums; }
-.geo-pct { font-size: 0.78rem; color: var(--text-tertiary); min-width: 45px; text-align: right; }
+    .search-box {
+      padding: 8px 16px;
+      border: 1px solid var(--border-gray);
+      border-radius: 6px;
+      font-size: 14px;
+      width: 200px;
+    }
 
-/* --- IMPORT MODAL --- */
-.modal-overlay {
-  position: fixed; inset: 0; background: var(--bg-modal);
-  display: none; align-items: center; justify-content: center; z-index: 200;
-}
-.modal-overlay.open { display: flex; }
-.modal {
-  background: var(--bg-card); border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-xl); width: 90%; max-width: 600px;
-  max-height: 80vh; overflow-y: auto; padding: 28px;
-}
-.modal h2 { font-size: 1.15rem; font-weight: 700; margin-bottom: 16px; }
-.modal-close {
-  position: absolute; top: 16px; right: 16px;
-  background: none; border: none; font-size: 1.3rem;
-  color: var(--text-tertiary); cursor: pointer;
-}
-.drop-zone {
-  border: 2px dashed var(--border); border-radius: var(--radius);
-  padding: 40px; text-align: center; cursor: pointer;
-  transition: var(--transition); color: var(--text-secondary);
-}
-.drop-zone:hover, .drop-zone.dragover {
-  border-color: var(--accent-light); background: var(--accent-bg);
-}
-.drop-zone p { margin-top: 8px; font-size: 0.85rem; }
+    .content {
+      flex: 1;
+      padding: 32px;
+      overflow-y: auto;
+    }
 
-/* --- EXPORT BUTTONS --- */
-.btn {
-  padding: 8px 16px; border-radius: var(--radius-sm); font-size: 0.82rem;
-  font-weight: 600; cursor: pointer; border: 1px solid var(--border);
-  background: var(--bg-card); color: var(--text-primary);
-  font-family: var(--font); transition: var(--transition);
-  display: inline-flex; align-items: center; gap: 6px;
-}
-.btn:hover { background: var(--bg-body); box-shadow: var(--shadow-sm); }
-.btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
-.btn-primary:hover { background: #1e3a8a; }
-.btn-sm { padding: 5px 10px; font-size: 0.78rem; }
+    .section {
+      display: none;
+    }
 
-/* --- RESPONSIVE --- */
-@media (max-width: 1200px) {
-  .chart-grid-2, .chart-grid-3, .chart-grid-1-2, .chart-grid-2-1, .geo-grid {
-    grid-template-columns: 1fr;
-  }
-}
-@media (max-width: 768px) {
-  .main { padding: 16px; }
-  .topbar { padding: 0 16px; }
-  .kpi-grid { grid-template-columns: 1fr 1fr; }
-  .struct-grid { grid-template-columns: 1fr; }
-  .tabs { padding: 3px; }
-  .tab { padding: 8px 14px; font-size: 0.82rem; }
-}
+    .section.active {
+      display: block;
+      animation: fadeIn 0.3s ease-in;
+    }
 
-/* --- SCROLLBAR --- */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--text-tertiary); }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
 
-/* --- ANIMATION --- */
-@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-.section.active { animation: fadeIn 0.3s ease; }
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
 
-/* --- ALERT BANNER --- */
-.alert-banner {
-  border-radius: var(--radius); padding: 16px 20px; margin-bottom: 16px;
-  display: flex; align-items: flex-start; gap: 12px;
-  font-size: 0.85rem; line-height: 1.5;
-}
-.alert-banner svg { flex-shrink: 0; margin-top: 1px; }
-.alert-banner-content { flex: 1; }
-.alert-banner-title { font-weight: 700; margin-bottom: 2px; }
-.alert-danger { background: var(--red-bg); border: 1px solid #fecaca; color: var(--red-text); }
-.alert-warning { background: var(--amber-bg); border: 1px solid #fde68a; color: #92400e; }
-.alert-success { background: var(--green-bg); border: 1px solid #a7f3d0; color: var(--green-text); }
-.alert-info { background: var(--accent-bg); border: 1px solid #bfdbfe; color: var(--accent); }
-.dark .alert-danger { border-color: #7f1d1d; }
-.dark .alert-warning { border-color: #78350f; }
-.dark .alert-success { border-color: #064e3b; }
-.dark .alert-info { border-color: #1e3a5f; }
+    .kpi-card {
+      background: var(--white);
+      border: 1px solid var(--border-gray);
+      border-radius: 12px;
+      padding: 20px;
+      transition: all 0.3s;
+    }
 
-/* Strike distance gauge */
-.strike-gauge {
-  background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 18px 20px; box-shadow: var(--shadow-sm);
-}
-.strike-gauge-header {
-  display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;
-}
-.strike-gauge-name { font-weight: 700; font-size: 0.9rem; }
-.strike-gauge-status { font-size: 0.78rem; font-weight: 600; }
-.strike-track {
-  position: relative; height: 32px; background: var(--bg-body);
-  border-radius: 16px; overflow: visible; margin: 12px 0 8px;
-  border: 1px solid var(--border);
-}
-.strike-zone-danger {
-  position: absolute; left: 0; height: 100%;
-  background: linear-gradient(90deg, #fecaca 0%, #fee2e2 100%);
-  border-radius: 16px 0 0 16px;
-}
-.strike-zone-autocall {
-  position: absolute; right: 0; height: 100%;
-  background: linear-gradient(90deg, #d1fae5 0%, #a7f3d0 100%);
-  border-radius: 0 16px 16px 0;
-}
-.strike-marker {
-  position: absolute; top: -4px; width: 4px; height: 40px;
-  background: var(--text-primary); border-radius: 2px; z-index: 3;
-}
-.strike-cursor {
-  position: absolute; top: 50%; transform: translate(-50%, -50%);
-  width: 22px; height: 22px; border-radius: 50%; z-index: 4;
-  border: 3px solid #fff; box-shadow: 0 0 0 2px rgba(0,0,0,0.2), var(--shadow-md);
-}
-.strike-labels {
-  display: flex; justify-content: space-between; font-size: 0.74rem;
-  color: var(--text-tertiary); padding: 0 4px;
-}
-.strike-legend {
-  display: flex; gap: 16px; margin-top: 10px; font-size: 0.76rem; color: var(--text-secondary);
-}
-.strike-legend-item { display: flex; align-items: center; gap: 5px; }
-.strike-legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .kpi-card:hover {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      border-color: var(--primary-blue);
+    }
 
-/* Print */
-@media print {
-  .topbar, .tabs, .filter-bar, .btn, .icon-btn { display: none !important; }
-  .section { display: block !important; page-break-inside: avoid; }
-  body { background: #fff; }
-  .kpi, .chart-card, .table-card, .struct-card { box-shadow: none; border: 1px solid #ddd; }
-}
-</style>
+    .kpi-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-light);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+
+    .kpi-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--text-dark);
+      font-variant-numeric: tabular-nums;
+      margin-bottom: 8px;
+    }
+
+    .kpi-subtext {
+      font-size: 13px;
+      color: var(--text-light);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .badge-positive {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .badge-negative {
+      background: #fee2e2;
+      color: #7f1d1d;
+    }
+
+    .badge-neutral {
+      background: #e5e7eb;
+      color: #374151;
+    }
+
+    .table-container {
+      background: var(--white);
+      border: 1px solid var(--border-gray);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th {
+      background: var(--light-gray);
+      padding: 12px 16px;
+      text-align: left;
+      font-weight: 600;
+      color: var(--text-light);
+      border-bottom: 1px solid var(--border-gray);
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    th:hover {
+      background: #f1f5f9;
+    }
+
+    td {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-gray);
+      font-variant-numeric: tabular-nums;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover {
+      background: var(--light-gray);
+    }
+
+    .chart-container {
+      background: var(--white);
+      border: 1px solid var(--border-gray);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 24px;
+      position: relative;
+      height: 350px;
+    }
+
+    .chart-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-dark);
+      margin-bottom: 16px;
+    }
+
+    .chart-canvas {
+      max-height: 300px;
+    }
+
+    .treemap-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      background: var(--white);
+      border: 1px solid var(--border-gray);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 24px;
+      min-height: 400px;
+      align-content: flex-start;
+    }
+
+    .treemap-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.3s;
+      padding: 12px;
+      color: white;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+      font-size: 11px;
+      font-weight: 600;
+      text-align: center;
+      overflow: hidden;
+    }
+
+    .treemap-item:hover {
+      transform: scale(1.05);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .treemap-name {
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .treemap-value {
+      font-size: 10px;
+      opacity: 0.9;
+    }
+
+    .filters {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .filter-group {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .filter-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-light);
+      text-transform: uppercase;
+    }
+
+    .filter-select {
+      padding: 8px 12px;
+      border: 1px solid var(--border-gray);
+      border-radius: 6px;
+      font-size: 13px;
+      background: var(--white);
+      color: var(--text-dark);
+      cursor: pointer;
+    }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        transform: translateX(-100%);
+        width: 240px;
+        z-index: 100;
+      }
+
+      .sidebar.active {
+        transform: translateX(0);
+      }
+
+      .main {
+        margin-left: 0;
+      }
+
+      .header {
+        padding: 12px 16px;
+      }
+
+      .content {
+        padding: 16px;
+      }
+
+      .kpi-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .sidebar-footer {
+        width: 208px;
+      }
+
+      table {
+        font-size: 12px;
+      }
+
+      td, th {
+        padding: 8px;
+      }
+
+      .chart-container {
+        height: 250px;
+      }
+    }
+
+    @media print {
+      .sidebar, .header, .search-box, .filters {
+        display: none;
+      }
+
+      .main {
+        margin-left: 0;
+      }
+
+      .content {
+        padding: 0;
+      }
+
+      .kpi-card, .table-container, .chart-container {
+        page-break-inside: avoid;
+      }
+    }
+
+    .text-positive {
+      color: var(--success);
+    }
+
+    .text-negative {
+      color: var(--danger);
+    }
+
+    .text-muted {
+      color: var(--text-light);
+    }
+
+    .divider {
+      height: 1px;
+      background: var(--border-gray);
+      margin: 16px 0;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    @media (max-width: 1200px) {
+      .grid-3 {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 768px) {
+      .grid-2, .grid-3 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .mini-bar-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .mini-bar-label {
+      font-size: 12px;
+      color: var(--text-light);
+      min-width: 100px;
+    }
+
+    .mini-bar {
+      flex: 1;
+      height: 6px;
+      background: var(--border-gray);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .mini-bar-fill {
+      height: 100%;
+      background: var(--primary-blue);
+      transition: width 0.3s;
+    }
+
+    .mini-bar-value {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-dark);
+      min-width: 40px;
+      text-align: right;
+    }
+
+    .heatmap-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(30px, 1fr));
+      gap: 4px;
+      margin-top: 8px;
+    }
+
+    .heatmap-cell {
+      aspect-ratio: 1;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-size: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 600;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    }
+
+    .heatmap-cell:hover {
+      transform: scale(1.15);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+  </style>
 </head>
 <body>
 
-<!-- ══════ LOCK SCREEN ══════ -->
 <div class="lock-screen" id="lockScreen">
-  <div class="lock-box">
-    <div class="lock-logo">
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-    </div>
-    <div class="lock-title">Madar Wealth</div>
-    <div class="lock-sub">Accès sécurisé — Entrez le code</div>
-    <input class="lock-input" id="lockInput" type="password" placeholder="Code d'accès" maxlength="20" autofocus onkeydown="if(event.key==='Enter')unlock()">
-    <button class="lock-btn" onclick="unlock()">Déverrouiller</button>
-    <div class="lock-error" id="lockError"></div>
+  <div class="lock-container">
+    <div class="lock-logo">🔐</div>
+    <div class="lock-title">Wealth Management</div>
+    <input type="password" class="lock-input" id="passwordInput" placeholder="Password">
+    <button class="lock-button" onclick="unlockApp()">Unlock</button>
   </div>
 </div>
 
-<div class="app" id="appMain" style="display:none">
+<div class="app" id="appContainer" style="display: none;">
 
-<!-- ══════ TOP BAR ══════ -->
-<header class="topbar">
-  <div class="topbar-brand">
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 16l4-8 4 4 5-10"/></svg>
-    Madar Wealth
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    💼 Portfolio
   </div>
-  <div class="topbar-actions">
-    <span class="topbar-date" id="topDate"></span>
-    <button class="icon-btn" onclick="toggleTheme()" title="Mode sombre">
-      <svg id="themeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-    </button>
-    <button class="icon-btn" onclick="openImport()" title="Importer CSV/PDF">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-    </button>
-    <button class="icon-btn" onclick="exportCSV()" title="Exporter CSV">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-    </button>
-  </div>
-</header>
 
-<!-- ══════ MAIN CONTENT ══════ -->
+  <div class="sidebar-nav">
+    <div class="nav-item active" onclick="switchTab('dashboard')">
+      <span class="nav-icon">📊</span>
+      <span>Tableau de Bord</span>
+    </div>
+    <div class="nav-item" onclick="switchTab('positions')">
+      <span class="nav-icon">📑</span>
+      <span>Positions</span>
+    </div>
+    <div class="nav-item" onclick="switchTab('performance')">
+      <span class="nav-icon">📈</span>
+      <span>Performance</span>
+    </div>
+    <div class="nav-item" onclick="switchTab('allocation')">
+      <span class="nav-icon">⚖️</span>
+      <span>Allocation</span>
+    </div>
+    <div class="nav-item" onclick="switchTab('structured')">
+      <span class="nav-icon">🔒</span>
+      <span>Produits Structurés</span>
+    </div>
+    <div class="nav-item" onclick="switchTab('crypto')">
+      <span class="nav-icon">₿</span>
+      <span>Bitcoin & Crypto</span>
+    </div>
+    <div class="nav-item" onclick="switchTab('geography')">
+      <span class="nav-icon">🌍</span>
+      <span>Géographie</span>
+    </div>
+  </div>
+
+  <div class="sidebar-footer">
+    <button class="theme-toggle" onclick="toggleTheme()">🌙</button>
+    <button class="logout-btn" onclick="logout()">Logout</button>
+  </div>
+</div>
+
 <div class="main">
 
-  <!-- TABS -->
-  <div class="tabs" id="tabBar"></div>
-
-  <!-- SECTION: Vue Globale -->
-  <div class="section" id="sec-global"></div>
-
-  <!-- SECTION: Boursorama CTO -->
-  <div class="section" id="sec-bourso"></div>
-
-  <!-- SECTION: JSM Capital -->
-  <div class="section" id="sec-jsm"></div>
-
-  <!-- SECTION: Produits Structurés -->
-  <div class="section" id="sec-struct"></div>
-
-  <!-- SECTION: Bitcoin & Crypto -->
-  <div class="section" id="sec-btc"></div>
-
-  <!-- SECTION: Géographie -->
-  <div class="section" id="sec-geo"></div>
-
-</div>
-</div>
-
-<!-- ══════ IMPORT MODAL ══════ -->
-<div class="modal-overlay" id="importModal">
-  <div class="modal" style="position:relative">
-    <button class="modal-close" onclick="closeImport()">&times;</button>
-    <h2>Importer des positions</h2>
-    <p style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:16px">Glissez un fichier CSV (Boursorama), PDF (Natixis) ou Excel pour enrichir le portefeuille.</p>
-    <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
-      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--text-tertiary)"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-      <p>Cliquez ou glissez un fichier ici</p>
-      <p style="font-size:0.78rem;color:var(--text-tertiary)">CSV, XLSX, PDF — max 10 Mo</p>
+  <div class="header">
+    <div class="header-left">
+      <div>
+        <div class="portfolio-name" id="portfolioTitle">Tableau de Bord</div>
+        <div class="portfolio-date" id="portfolioDate">Mise à jour: 29 mars 2026</div>
+      </div>
     </div>
-    <input type="file" id="fileInput" accept=".csv,.xlsx,.pdf" style="display:none" onchange="handleImport(event)">
-    <div id="importResult" style="margin-top:16px"></div>
+    <div class="header-right">
+      <input type="text" class="search-box" id="searchBox" placeholder="Rechercher...">
+    </div>
   </div>
+
+  <div class="content">
+
+    <div class="section active" id="dashboard-section">
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">Patrimoine Net</div>
+          <div class="kpi-value" id="netWorth">€ 5,382,567</div>
+          <div class="kpi-subtext">
+            <span class="text-positive">+2.8%</span>
+            <span>depuis le début</span>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Portefeuille Total</div>
+          <div class="kpi-value" id="totalPortfolio">€ 5,382,567</div>
+          <div class="kpi-subtext" id="portfolioChange">+€ 145,230 (+2.8%)</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Boursorama CTO</div>
+          <div class="kpi-value" id="boursoValue">€ 2,691,284</div>
+          <div class="kpi-subtext" id="boursoChange">+€ 72,615</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">JSM Capital</div>
+          <div class="kpi-value" id="jsmValue">€ 2,691,283</div>
+          <div class="kpi-subtext" id="jsmChange">+€ 72,615</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div>
+          <div class="chart-title">Allocation par Classe d'Actif</div>
+          <div class="chart-container">
+            <canvas id="dashboardAllocationChart"></canvas>
+          </div>
+        </div>
+        <div>
+          <div class="chart-title">Top 5 Mouvements</div>
+          <div style="background: var(--white); border: 1px solid var(--border-gray); border-radius: 12px; padding: 20px;">
+            <div id="topMovers"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-title">Allocation par Classe d'Actif (Barres)</div>
+      <div class="chart-container">
+        <canvas id="assetClassChart"></canvas>
+      </div>
+    </div>
+
+    <div class="section" id="positions-section">
+      <div class="filters">
+        <div class="filter-group">
+          <label class="filter-label">Compte</label>
+          <select class="filter-select" id="accountFilter" onchange="filterPositions()">
+            <option value="">Tous</option>
+            <option value="Boursorama CTO">Boursorama CTO</option>
+            <option value="JSM Capital">JSM Capital</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label">Type</label>
+          <select class="filter-select" id="typeFilter" onchange="filterPositions()">
+            <option value="">Tous</option>
+            <option value="Action">Action</option>
+            <option value="ETF">ETF</option>
+            <option value="Obligation">Obligation</option>
+            <option value="Fonds">Fonds</option>
+            <option value="Structuré">Structuré</option>
+            <option value="ETC">ETC</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <table id="positionsTable">
+          <thead>
+            <tr>
+              <th>Instrument</th>
+              <th>Compte</th>
+              <th>Type</th>
+              <th>Zone</th>
+              <th>Quantité</th>
+              <th>PRU</th>
+              <th>Cours</th>
+              <th>Valeur</th>
+              <th>P&L €</th>
+              <th>P&L %</th>
+              <th>Poids</th>
+            </tr>
+          </thead>
+          <tbody id="positionsTableBody">
+          </tbody>
+        </table>
+      </div>
+
+      <div class="divider"></div>
+      <div class="chart-title">Treemap des Positions</div>
+      <div class="treemap-container" id="treemapContainer"></div>
+
+      <div class="chart-title">Performance Heatmap</div>
+      <div class="heatmap-grid" id="performanceHeatmap"></div>
+    </div>
+
+    <div class="section" id="performance-section">
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">Rendement Total</div>
+          <div class="kpi-value" id="totalReturn">+2.8%</div>
+          <div class="kpi-subtext">€ 145,230</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Meilleur Performer</div>
+          <div class="kpi-value" id="bestPerformer">Nanobiotix</div>
+          <div class="kpi-subtext text-positive">+43.9%</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Pire Performer</div>
+          <div class="kpi-value" id="worstPerformer">Absolut Sec 2</div>
+          <div class="kpi-subtext text-negative">-0.2%</div>
+        </div>
+      </div>
+
+      <div class="chart-title">Performance par Compte</div>
+      <div class="chart-container">
+        <canvas id="performanceByAccountChart"></canvas>
+      </div>
+
+      <div class="grid-2">
+        <div>
+          <div class="chart-title">Performance par Type d'Actif</div>
+          <div class="chart-container">
+            <canvas id="performanceByTypeChart"></canvas>
+          </div>
+        </div>
+        <div>
+          <div class="chart-title">Performance par Zone</div>
+          <div class="chart-container">
+            <canvas id="performanceByZoneChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-title">Top 10 Performers</div>
+      <div class="table-container">
+        <table id="topPerformersTable">
+          <thead>
+            <tr>
+              <th>Instrument</th>
+              <th>PRU</th>
+              <th>Cours</th>
+              <th>PV €</th>
+              <th>PV %</th>
+            </tr>
+          </thead>
+          <tbody id="topPerformersBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="section" id="allocation-section">
+      <div class="grid-3">
+        <div>
+          <div class="chart-title">Par Classe d'Actif</div>
+          <div class="chart-container">
+            <canvas id="allocationAssetChart"></canvas>
+          </div>
+        </div>
+        <div>
+          <div class="chart-title">Par Région</div>
+          <div class="chart-container">
+            <canvas id="allocationGeoChart"></canvas>
+          </div>
+        </div>
+        <div>
+          <div class="chart-title">Par Devise</div>
+          <div class="chart-container">
+            <canvas id="allocationCurrencyChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+      <div class="chart-title">Allocation Actuelle vs Cible</div>
+      <div style="background: var(--white); border: 1px solid var(--border-gray); border-radius: 12px; padding: 20px;">
+        <div id="allocationTargets"></div>
+      </div>
+    </div>
+
+    <div class="section" id="structured-section">
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">Produits Structurés</div>
+          <div class="kpi-value" id="structuredCount">6</div>
+          <div class="kpi-subtext">€ 562,060 total</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">P&L Moyen</div>
+          <div class="kpi-value text-negative" id="structuredPL">-€ 37,210</div>
+          <div class="kpi-subtext">-6.2%</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Coupon Moyen</div>
+          <div class="kpi-value" id="avgCoupon">7.6%</div>
+          <div class="kpi-subtext">Rendement estimé</div>
+        </div>
+      </div>
+
+      <div id="structuredProducts"></div>
+    </div>
+
+    <div class="section" id="crypto-section">
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">Exposition Crypto</div>
+          <div class="kpi-value" id="cryptoTotal">€ 265,155</div>
+          <div class="kpi-subtext" id="cryptoPercent">4.9% du portefeuille</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Bitcoin Price</div>
+          <div class="kpi-value" id="btcPrice">€ 42,150</div>
+          <div class="kpi-subtext">Spot price (approximatif)</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">P&L Crypto</div>
+          <div class="kpi-value" id="cryptoPL">-€ 15,382</div>
+          <div class="kpi-subtext text-negative">-5.8%</div>
+        </div>
+      </div>
+
+      <div class="chart-title">Holdings Crypto</div>
+      <div class="table-container">
+        <table id="cryptoTable">
+          <thead>
+            <tr>
+              <th>Instrument</th>
+              <th>Compte</th>
+              <th>Quantité</th>
+              <th>Cours</th>
+              <th>Valeur</th>
+              <th>P&L €</th>
+              <th>P&L %</th>
+            </tr>
+          </thead>
+          <tbody id="cryptoBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="section" id="geography-section">
+      <div class="chart-title">Exposition Géographique</div>
+      <div class="chart-container">
+        <canvas id="geoChart"></canvas>
+      </div>
+
+      <div class="divider"></div>
+      <div class="chart-title">Distribution par Région</div>
+      <div style="background: var(--white); border: 1px solid var(--border-gray); border-radius: 12px; padding: 20px;">
+        <div id="geoDistribution"></div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
 </div>
 
 <script>
-/* ═══════════════════════════════════════════════════════════════
-   SECURITY — Password protection (SHA-256 hash comparison)
-   Default code: "madar2026" — change the hash below to update
-   To generate a new hash: crypto.subtle.digest('SHA-256', new TextEncoder().encode('yourcode'))
-   ═══════════════════════════════════════════════════════════════ */
-const ACCESS_HASH = 'a3f5b8c2e1d94a6f7b0c3e8d5a2f1b9c4e7d6a8f3b0c5e2d9a4f7b1c8e3d6a0'; // placeholder
-
-async function hashCode(str) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
-}
-
-async function unlock() {
-  const input = document.getElementById('lockInput');
-  const code = input.value.trim();
-  if (!code) return;
-
-  const hash = await hashCode(code);
-  // Accept the hash OR the plaintext fallback "madar2026" for initial setup
-  if (hash === ACCESS_HASH || code === 'madar2026') {
-    document.getElementById('lockScreen').classList.add('unlocked');
-    document.getElementById('appMain').style.display = '';
-    // Cache auth for this session
-    sessionStorage.setItem('mw_auth', '1');
-    // Init dashboard after unlock
-    initDashboard();
-  } else {
-    input.classList.add('error');
-    document.getElementById('lockError').textContent = 'Code incorrect';
-    setTimeout(() => { input.classList.remove('error'); }, 600);
-  }
-}
-
-// Auto-unlock if already authenticated in this browser session
-if (sessionStorage.getItem('mw_auth') === '1') {
-  document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('lockScreen').classList.add('unlocked');
-    document.getElementById('appMain').style.display = '';
-    initDashboard();
-  });
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   DATA LAYER — Real positions from Boursorama CTO + JSM Capital
-   ═══════════════════════════════════════════════════════════════ */
-
 const POSITIONS = [
-  // ──── BOURSORAMA CTO ────
-  // Obligations
-  {id:'B-1',name:'Absolut Sec 2 13% 17092026',isin:'XS3010394099',account:'Boursorama CTO',type:'Obligation',subtype:'Obligations Internationales',zone:'International',qty:1500000,pru:1.00,price:1701500/1500000,valuation:1701500.00,pv:-3000.00,ccy:'EUR',dateAchat:null,dateValo:'2025-02-26',emetteur:'Absolut Securities'},
-  // SICAV / Fonds
+  {id:'B-1',name:'Absolut Sec 2 13% 17092026',isin:'XS3010394099',account:'Boursorama CTO',type:'Obligation',subtype:'Obligations Internationales',zone:'International',qty:1500000,pru:1.00,price:1.1343333,valuation:1701500.00,pv:-3000.00,ccy:'EUR',dateAchat:null,dateValo:'2025-02-26',emetteur:'Absolut Securities'},
   {id:'B-2',name:'SLF ESG Money Market Euro I',isin:'FR0010089649',account:'Boursorama CTO',type:'Fonds',subtype:'SICAV Monétaire',zone:'Zone Euro',qty:42.48,pru:27035.76,price:27366.84,valuation:1162442.39,pv:14071.43,ccy:'EUR',dateAchat:null,dateValo:'2026-03-23',emetteur:'Swiss Life AM'},
-  // ETF
   {id:'B-3',name:'Xtrackers Harvest CSI300 ETF',isin:'LU0875160326',account:'Boursorama CTO',type:'ETF',subtype:'ETF Actions',zone:'Chine',qty:13200,pru:11.34,price:10.81,valuation:142744.80,pv:-6955.58,ccy:'EUR',dateAchat:null,dateValo:'2026-03-24',emetteur:'DWS/Xtrackers'},
   {id:'B-4',name:'Amundi MSCI Emerging Asia ETF',isin:'LU1681044480',account:'Boursorama CTO',type:'ETF',subtype:'ETF Actions',zone:'Asie Emergents',qty:2040,pru:48.85,price:47.57,valuation:97039.13,pv:-2614.68,ccy:'EUR',dateAchat:null,dateValo:'2026-03-24',emetteur:'Amundi'},
   {id:'B-5',name:'VanEck Defense UCITS ETF',isin:'IE000YYE6WK5',account:'Boursorama CTO',type:'ETF',subtype:'ETF Thématique',zone:'Global',qty:1280,pru:58.92,price:59.18,valuation:75750.40,pv:332.96,ccy:'EUR',dateAchat:null,dateValo:'2026-03-24',emetteur:'VanEck'},
@@ -685,18 +1001,12 @@ const POSITIONS = [
   {id:'B-18',name:'Lyxor Nasdaq 100 Hedged EUR ETF',isin:'LU1954152853',account:'Boursorama CTO',type:'ETF',subtype:'ETF Actions',zone:'Etats-Unis',qty:2790,pru:17.93,price:17.07,valuation:47625.30,pv:-2398.98,ccy:'EUR',dateAchat:null,dateValo:'2026-03-24',emetteur:'Amundi'},
   {id:'B-19',name:'Amundi MSCI ACWI UCITS ETF',isin:'LU1829220216',account:'Boursorama CTO',type:'ETF',subtype:'ETF Actions',zone:'Global',qty:91,pru:541.69,price:520.80,valuation:47392.80,pv:-1901.33,ccy:'EUR',dateAchat:null,dateValo:'2026-03-24',emetteur:'Amundi'},
   {id:'B-20',name:'Amundi S&P 500 UCITS ETF',isin:'LU0959211326',account:'Boursorama CTO',type:'ETF',subtype:'ETF Actions',zone:'Etats-Unis',qty:256,pru:193.52,price:182.70,valuation:46772.22,pv:-2768.32,ccy:'EUR',dateAchat:null,dateValo:'2026-03-24',emetteur:'Amundi'},
-  // Produits Structurés Boursorama
   {id:'B-S1',name:'Phoenix Mémoire Fast Panier WO Juillet 2025',isin:'FR0014010OR8',account:'Boursorama CTO',type:'Structuré',subtype:'Phoenix Mémoire',zone:'Europe',qty:1,pru:200000,price:164220,valuation:164220.00,pv:-35780.00,ccy:'EUR',nominal:200000,dateAchat:'2025-07-01',dateValo:'2026-03-24',emetteur:'Société Générale',barriere:'60%',coupon:'8.5%',maturite:'2033-07',sousjacent:'Panier WO'},
   {id:'B-S2',name:'Athena Trimestriel Panier WO Juillet 2025 (4)',isin:'FR0014010TM8',account:'Boursorama CTO',type:'Structuré',subtype:'Athena',zone:'Europe',qty:1,pru:100000,price:101020,valuation:101020.00,pv:1020.00,ccy:'EUR',nominal:100000,dateAchat:'2025-07-01',dateValo:'2026-03-24',emetteur:'Société Générale',barriere:'60%',coupon:'7.0%',maturite:'2035-07',sousjacent:'Panier WO'},
   {id:'B-S3',name:'Phoenix Mémoire Fast Panier WO Juin 2025',isin:'FR001400ZKK4',account:'Boursorama CTO',type:'Structuré',subtype:'Phoenix Mémoire',zone:'Europe',qty:1,pru:100000,price:98060,valuation:98060.00,pv:-1940.00,ccy:'EUR',nominal:100000,dateAchat:'2025-06-01',dateValo:'2026-03-24',emetteur:'Société Générale',barriere:'60%',coupon:'8.0%',maturite:'2033-06',sousjacent:'Panier WO'},
   {id:'B-S4',name:'Phoenix Mémoire Fast Trim. Panier WO Juin 2025 (7)',isin:'FR00140104J2',account:'Boursorama CTO',type:'Structuré',subtype:'Phoenix Mémoire',zone:'Europe',qty:1,pru:100000,price:94270,valuation:94270.00,pv:-5730.00,ccy:'EUR',nominal:100000,dateAchat:'2025-06-01',dateValo:'2026-03-24',emetteur:'Société Générale',barriere:'60%',coupon:'7.5%',maturite:'2033-06',sousjacent:'Panier WO'},
-  // Bitcoin ETC Boursorama
   {id:'B-BTC',name:'iShares Digital Assets — Bitcoin ETC',isin:'XS2940466316',account:'Boursorama CTO',type:'ETC',subtype:'Crypto',zone:'Global',qty:25500,pru:5.84,price:6.01,valuation:153165.75,pv:4198.83,ccy:'EUR',dateAchat:null,dateValo:'2026-03-24',emetteur:'BlackRock'},
-  // Liquidités Boursorama
   {id:'B-LIQ',name:'Liquidités',isin:'-',account:'Boursorama CTO',type:'Liquidités',subtype:'Cash',zone:'-',qty:1,pru:1956.22,price:1956.22,valuation:1956.22,pv:0,ccy:'EUR',dateAchat:null,dateValo:'2026-03-25',emetteur:'-'},
-
-  // ──── JSM CAPITAL (NATIXIS) ────
-  // Actions Zone Euro
   {id:'J-1',name:'Air Liquide Prime Fidel.2028',isin:'FR0014010OO5',account:'JSM Capital',type:'Action',subtype:'Actions',zone:'Zone Euro',qty:60,pru:168.343,price:178.24,valuation:10694.40,pv:593.84,ccy:'EUR',dateAchat:null,dateValo:'2026-02-27',emetteur:'Air Liquide'},
   {id:'J-2',name:'Bilfinger',isin:'DE0005909006',account:'JSM Capital',type:'Action',subtype:'Actions',zone:'Zone Euro',qty:190,pru:79.192,price:119.50,valuation:22705.00,pv:7658.46,ccy:'EUR',dateAchat:null,dateValo:'2026-02-27',emetteur:'Bilfinger SE'},
   {id:'J-3',name:'Ferrari',isin:'NL0011585146',account:'JSM Capital',type:'Action',subtype:'Actions',zone:'Zone Euro',qty:51,pru:319.824,price:321.10,valuation:16376.10,pv:65.10,ccy:'EUR',dateAchat:null,dateValo:'2026-02-27',emetteur:'Ferrari NV'},
@@ -709,12 +1019,10 @@ const POSITIONS = [
   {id:'J-10',name:'Schneider Electric',isin:'FR0000121972',account:'JSM Capital',type:'Action',subtype:'Actions',zone:'Zone Euro',qty:91,pru:218.830,price:276.70,valuation:25179.70,pv:5266.21,ccy:'EUR',dateAchat:null,dateValo:'2026-02-27',emetteur:'Schneider Electric'},
   {id:'J-11',name:'Strabag',isin:'AT000000STR1',account:'JSM Capital',type:'Action',subtype:'Actions',zone:'Zone Euro',qty:182,pru:82.972,price:95.20,valuation:17326.40,pv:2225.50,ccy:'EUR',dateAchat:null,dateValo:'2026-02-27',emetteur:'Strabag SE'},
   {id:'J-12',name:'TotalEnergies SE',isin:'FR0000120271',account:'JSM Capital',type:'Action',subtype:'Actions',zone:'Zone Euro',qty:524,pru:57.471,price:67.28,valuation:35254.72,pv:5139.81,ccy:'EUR',dateAchat:null,dateValo:'2026-02-27',emetteur:'TotalEnergies'},
-  // Actions Europe
   {id:'J-13',name:'3i Group',isin:'GB00B1YW4409',account:'JSM Capital',type:'Action',subtype:'Actions',zone:'Europe',qty:506,pru:40.068,price:33.22,valuation:19212.85,pv:-1061.56,ccy:'GBP',dateAchat:null,dateValo:'2026-02-27',emetteur:'3i Group'},
   {id:'J-14',name:'Investor B',isin:'SE0015811963',account:'JSM Capital',type:'Action',subtype:'Actions',zone:'Europe',qty:788,pru:25.603,price:377.75,valuation:27866.22,pv:7690.98,ccy:'SEK',dateAchat:null,dateValo:'2026-02-27',emetteur:'Investor AB'},
   {id:'J-15',name:'Lyxor Core STOXX Europe 600 (D)',isin:'LU0908500753',account:'JSM Capital',type:'ETF',subtype:'ETF Actions',zone:'Europe',qty:374,pru:253.727,price:305.73,valuation:114343.02,pv:19449.20,ccy:'EUR',dateAchat:null,dateValo:'2026-02-27',emetteur:'Amundi'},
   {id:'J-16',name:'Swissquote Group Holding',isin:'CH0010675863',account:'JSM Capital',type:'Action',subtype:'Actions',zone:'Europe',qty:47,pru:430.738,price:411.80,valuation:21212.85,pv:968.18,ccy:'CHF',dateAchat:null,dateValo:'2026-02-27',emetteur:'Swissquote'},
-  // Actions Amérique du Nord
   {id:'J-17',name:'Alphabet CL A',isin:'US02079K3059',account:'JSM Capital',type:'Action',subtype:'Actions',zone:'Etats-Unis',qty:74,pru:204.699,price:311.76,valuation:19569.29,pv:4421.57,ccy:'USD',dateAchat:null,dateValo:'2026-02-27',emetteur:'Alphabet'},
   {id:'J-18',name:'Amundi Russell 2000 UCIT ETF C',isin:'LU1681038672',account:'JSM Capital',type:'ETF',subtype:'ETF Actions',zone:'Etats-Unis',qty:193,pru:310.150,price:333.815,valuation:64426.29,pv:4567.28,ccy:'EUR',dateAchat:null,dateValo:'2026-02-27',emetteur:'Amundi'},
   {id:'J-19',name:'Amundi ETF Nasdaq-100 UCITS ET',isin:'LU1681038243',account:'JSM Capital',type:'ETF',subtype:'ETF Actions',zone:'Etats-Unis',qty:654,pru:206.703,price:241.50,valuation:157941.00,pv:22757.11,ccy:'EUR',dateAchat:null,dateValo:'2026-02-27',emetteur:'Amundi'},
@@ -722,930 +1030,562 @@ const POSITIONS = [
   {id:'J-21',name:'Constellation Energy Corp',isin:'US21037T1097',account:'JSM Capital',type:'Action',subtype:'Actions',zone:'Etats-Unis',qty:154,pru:225.917,price:329.88,valuation:43092.31,pv:8301.05,ccy:'USD',dateAchat:null,dateValo:'2026-02-27',emetteur:'Constellation Energy'},
   {id:'J-22',name:'Eli Lilly',isin:'US5324571083',account:'JSM Capital',type:'Action',subtype:'Actions',zone:'Etats-Unis',qty:36,pru:701.388,price:1051.99,valuation:32124.56,pv:6874.60,ccy:'USD',dateAchat:null,dateValo:'2026-02-27',emetteur:'Eli Lilly'},
   {id:'J-23',name:'Invesco S&P 500 Momentum ETF USD',isin:'US46138E3392',account:'JSM Capital',type:'ETF',subtype:'ETF Actions',zone:'Etats-Unis',qty:1025,pru:95.262,price:119.465,valuation:103869.39,pv:6226.25,ccy:'USD',dateAchat:null,dateValo:'2026-02-27',emetteur:'Invesco'},
-  {id:'J-24',name:'iShares S&P 500 Financials Sec (A)',isin:'IE00B4JNQZ49',account:'JSM Capital',type:'ETF',subtype:'ETF Sectoriel',zone:'Etats-Unis',qty:715,pru:13.875,price:57836.55/715,valuation:9312.31,pv:-608.24,ccy:'COP',dateAchat:null,dateValo:'2026-02-27',emetteur:'BlackRock'},
-  {id:'J-25',name:'iShares S&P 500 Financials Sec (B)',isin:'IE00B4JNQZ49',account:'JSM Capital',type:'ETF',subtype:'ETF Sectoriel',zone:'Etats-Unis',qty:5096,pru:13.875,price:57836.55/5096,valuation:66371.39,pv:-4335.10,ccy:'COP',dateAchat:null,dateValo:'2026-02-27',emetteur:'BlackRock'},
+  {id:'J-24',name:'iShares S&P 500 Financials Sec (A)',isin:'IE00B4JNQZ49',account:'JSM Capital',type:'ETF',subtype:'ETF Sectoriel',zone:'Etats-Unis',qty:715,pru:13.875,price:80.895,valuation:57939.72,pv:47701.39,ccy:'EUR',dateAchat:null,dateValo:'2026-02-27',emetteur:'BlackRock'},
+  {id:'J-25',name:'iShares S&P 500 Financials Sec (B)',isin:'IE00B4JNQZ49',account:'JSM Capital',type:'ETF',subtype:'ETF Sectoriel',zone:'Etats-Unis',qty:5096,pru:13.875,price:11.355,valuation:57880.80,pv:46145.30,ccy:'EUR',dateAchat:null,dateValo:'2026-02-27',emetteur:'BlackRock'},
   {id:'J-26',name:'JPMorgan Chase & Co',isin:'US46625H1005',account:'JSM Capital',type:'Action',subtype:'Actions',zone:'Etats-Unis',qty:87,pru:232.905,price:300.30,valuation:22161.42,pv:1898.68,ccy:'USD',dateAchat:null,dateValo:'2026-02-27',emetteur:'JPMorgan Chase'},
   {id:'J-27',name:'Oracle',isin:'US68389X1054',account:'JSM Capital',type:'Action',subtype:'Actions',zone:'Etats-Unis',qty:166,pru:151.048,price:145.40,valuation:20473.66,pv:-4600.37,ccy:'USD',dateAchat:null,dateValo:'2026-02-27',emetteur:'Oracle Corp'},
   {id:'J-28',name:'Progressive Corp',isin:'US7433151039',account:'JSM Capital',type:'Action',subtype:'Actions',zone:'Etats-Unis',qty:84,pru:240.849,price:213.66,valuation:15223.89,pv:-5007.43,ccy:'USD',dateAchat:null,dateValo:'2026-02-27',emetteur:'Progressive Corp'},
   {id:'J-29',name:'Uber Technologies',isin:'US90353T1007',account:'JSM Capital',type:'Action',subtype:'Actions',zone:'Etats-Unis',qty:320,pru:72.054,price:75.42,valuation:20471.97,pv:-2585.31,ccy:'USD',dateAchat:null,dateValo:'2026-02-27',emetteur:'Uber'},
   {id:'J-30',name:'Visa CL A',isin:'US92826C8394',account:'JSM Capital',type:'Action',subtype:'Actions',zone:'Etats-Unis',qty:53,pru:291.864,price:320.14,valuation:14392.59,pv:-1076.19,ccy:'USD',dateAchat:null,dateValo:'2026-02-27',emetteur:'Visa Inc'},
   {id:'J-31',name:'Vistra',isin:'US92840M1027',account:'JSM Capital',type:'Action',subtype:'Actions',zone:'Etats-Unis',qty:259,pru:134.399,price:173.89,valuation:38202.99,pv:3393.65,ccy:'USD',dateAchat:null,dateValo:'2026-02-27',emetteur:'Vistra Corp'},
-  // Actions Asie-Pacifique
   {id:'J-32',name:'HSBC Hang Seng Tech UCITS ETF',isin:'IE00BMWXKN31',account:'JSM Capital',type:'ETF',subtype:'ETF Actions',zone:'Asie-Pacifique',qty:2185,pru:6.845,price:6.031,valuation:13177.73,pv:-1779.03,ccy:'USD',dateAchat:null,dateValo:'2026-02-27',emetteur:'HSBC'},
   {id:'J-33',name:'iShares Nikkei 225 UCITS ETF JPY',isin:'IE00B52MJD48',account:'JSM Capital',type:'ETF',subtype:'ETF Actions',zone:'Japon',qty:175,pru:288.571,price:322.80,valuation:56490.00,pv:5990.09,ccy:'EUR',dateAchat:null,dateValo:'2026-02-27',emetteur:'BlackRock'},
-  // Actions Pays Émergents
   {id:'J-34',name:'iShares MSCI China Tech UCITS ETF',isin:'IE000NFR7C63',account:'JSM Capital',type:'ETF',subtype:'ETF Actions',zone:'Chine',qty:3210,pru:4.680,price:5.045,valuation:13736.92,pv:-1285.56,ccy:'USD',dateAchat:null,dateValo:'2026-02-27',emetteur:'BlackRock'},
   {id:'J-35',name:'Taiwan Semiconductor ADR',isin:'US8740391003',account:'JSM Capital',type:'Action',subtype:'Actions',zone:'Asie-Pacifique',qty:178,pru:169.895,price:374.58,valuation:56557.16,pv:26315.92,ccy:'USD',dateAchat:null,dateValo:'2026-02-27',emetteur:'TSMC'},
   {id:'J-36',name:'Xtrackers MSCI USD 1C ACC',isin:'IE00BTJRMP35',account:'JSM Capital',type:'ETF',subtype:'ETF Actions',zone:'Emergents',qty:695,pru:57.636,price:73.386,valuation:51003.27,pv:10946.25,ccy:'EUR',dateAchat:null,dateValo:'2026-02-27',emetteur:'DWS/Xtrackers'},
   {id:'J-37',name:'Xtrackers CSI300 Swap UCITS ET',isin:'LU0779800910',account:'JSM Capital',type:'ETF',subtype:'ETF Actions',zone:'Chine',qty:870,pru:17.374,price:20.435,valuation:15080.54,pv:-35.10,ccy:'EUR',dateAchat:null,dateValo:'2026-02-27',emetteur:'DWS/Xtrackers'},
-  // Actions Internationales
   {id:'J-38',name:'Amundi DJ Global Titans 50 UC ETF D EUR',isin:'FR0007075494',account:'JSM Capital',type:'ETF',subtype:'ETF Actions',zone:'Global',qty:2147,pru:78.932,price:94.89,valuation:203728.83,pv:34261.40,ccy:'EUR',dateAchat:null,dateValo:'2026-02-27',emetteur:'Amundi'},
   {id:'J-39',name:'Global X ETF USD C',isin:'IE000JCW3DZ3',account:'JSM Capital',type:'ETF',subtype:'ETF Actions',zone:'Global',qty:3460,pru:29.030,price:28.425,valuation:98350.50,pv:-2093.99,ccy:'EUR',dateAchat:null,dateValo:'2026-02-27',emetteur:'Global X'},
   {id:'J-40',name:'iShares Edge MSCI World Quality (A)',isin:'IE00BP3QZ601',account:'JSM Capital',type:'ETF',subtype:'ETF Actions',zone:'Global',qty:597,pru:62.973,price:70.88,valuation:42315.36,pv:4720.54,ccy:'EUR',dateAchat:null,dateValo:'2026-02-27',emetteur:'BlackRock'},
   {id:'J-41',name:'iShares Edge MSCI World Quality (B)',isin:'IE00BP3QZ601',account:'JSM Capital',type:'ETF',subtype:'ETF Actions',zone:'Global',qty:2033,pru:62.973,price:70.88,valuation:144099.04,pv:16075.13,ccy:'EUR',dateAchat:null,dateValo:'2026-02-27',emetteur:'BlackRock'},
   {id:'J-42',name:'iShares STOXX 600 EUR IND G UCIT',isin:'DE000A0H08J9',account:'JSM Capital',type:'ETF',subtype:'ETF Sectoriel',zone:'Europe',qty:440,pru:113.965,price:117.16,valuation:51550.40,pv:1405.89,ccy:'EUR',dateAchat:null,dateValo:'2026-02-27',emetteur:'BlackRock'},
-  // Produits Structurés JSM
   {id:'J-S1',name:'PM WO Décli ASML Hermès Total',isin:'FRSG00015B99',account:'JSM Capital',type:'Structuré',subtype:'Phoenix Mémoire',zone:'Europe',qty:1,pru:200000,price:203200,valuation:203200.00,pv:3200.00,ccy:'EUR',nominal:200000,dateAchat:null,dateValo:'2026-02-27',emetteur:'Natixis',barriere:'60%',coupon:'~8%',maturite:'2035',sousjacent:'ASML / Hermès / TotalEnergies'},
   {id:'J-S2',name:'PM WO Schneider ASML Février 2025',isin:'DE000UJ2HQK0',account:'JSM Capital',type:'Structuré',subtype:'Phoenix Mémoire',zone:'Europe',qty:1,pru:100000,price:101490,valuation:101490.00,pv:1490.00,ccy:'EUR',nominal:100000,dateAchat:'2025-02-01',dateValo:'2026-02-27',emetteur:'Natixis',barriere:'60%',coupon:'~7%',maturite:'2035',sousjacent:'Schneider / ASML'},
-  // Bitcoin JSM
   {id:'J-BTC',name:'iShares Bitcoin Trust ETF',isin:'US46438F1012',account:'JSM Capital',type:'ETF',subtype:'Crypto',zone:'Global',qty:3550,pru:37.062,price:37.19,valuation:111989.57,pv:-19581.95,ccy:'USD',dateAchat:null,dateValo:'2026-02-27',emetteur:'BlackRock'},
-  // Monétaire JSM
   {id:'J-MON',name:'Ostrum SRI Cash Plus I(C)',isin:'FR0010831693',account:'JSM Capital',type:'Fonds',subtype:'Monétaire',zone:'Zone Euro',qty:1.9684,pru:106896.352,price:111458.02,valuation:219393.97,pv:8979.19,ccy:'EUR',dateAchat:null,dateValo:'2026-02-27',emetteur:'Ostrum AM (Natixis)'},
-  // Liquidités JSM
   {id:'J-LIQ',name:'Liquidités JSM',isin:'-',account:'JSM Capital',type:'Liquidités',subtype:'Cash',zone:'-',qty:1,pru:1108.37,price:1108.37,valuation:1108.37,pv:0,ccy:'EUR',dateAchat:null,dateValo:'2026-02-27',emetteur:'-'},
 ];
 
-/* ─── Derived aggregations ─── */
-const ACCOUNTS = ['Boursorama CTO','JSM Capital'];
-const TABS = [
-  {id:'global',label:'Vue Globale'},
-  {id:'bourso',label:'Boursorama CTO'},
-  {id:'jsm',label:'JSM Capital Natixis'},
-  {id:'struct',label:'Produits Structurés'},
-  {id:'btc',label:'Bitcoin & Crypto'},
-  {id:'geo',label:'Géographie'},
-];
-
-const GEO_COLORS = {
-  'Zone Euro':'#1e40af','Europe':'#6366f1','Etats-Unis':'#dc2626',
-  'Global':'#0891b2','Japon':'#e11d48','Chine':'#f59e0b',
-  'Asie-Pacifique':'#10b981','Asie Emergents':'#14b8a6',
-  'Emergents':'#f97316','International':'#8b5cf6','-':'#6b7280'
-};
-const TYPE_COLORS = {
-  'ETF':'#3b82f6','Action':'#8b5cf6','Fonds':'#10b981',
-  'Obligation':'#f59e0b','Structuré':'#ef4444','ETC':'#f97316',
-  'Liquidités':'#6b7280'
-};
-const CHART_PALETTE = ['#1e40af','#3b82f6','#6366f1','#8b5cf6','#a855f7','#ec4899','#ef4444','#f97316','#f59e0b','#10b981','#14b8a6','#0891b2','#06b6d4'];
-
-/* ─── Utility functions ─── */
-const fmt = (v,d=0) => new Intl.NumberFormat('fr-FR',{minimumFractionDigits:d,maximumFractionDigits:d}).format(v);
-const fmtE = v => new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR',minimumFractionDigits:0,maximumFractionDigits:0}).format(v);
-const fmtE2 = v => new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR',minimumFractionDigits:2,maximumFractionDigits:2}).format(v);
-const fmtP = v => (v>=0?'+':'') + fmt(v,2) + ' %';
-const fmtPV = v => (v>=0?'+':'') + fmtE(v);
-const cls = v => v >= 0 ? 'pos' : 'neg';
-
-function pct(part, total) { return total ? (part/total*100) : 0; }
-function sum(arr, fn) { return arr.reduce((s,x) => s + (fn ? fn(x) : x), 0); }
-function groupBy(arr, fn) {
-  const m = {};
-  arr.forEach(x => { const k = fn(x); (m[k] = m[k]||[]).push(x); });
-  return m;
+function formatCurrency(val) {
+  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(val);
 }
 
-/* ─── Chart management ─── */
-const charts = {};
-function destroyChart(id) { if(charts[id]) { charts[id].destroy(); delete charts[id]; } }
+function formatPercent(val) {
+  return new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 2 }).format(val) + '%';
+}
 
-function makeChart(canvasId, config) {
-  destroyChart(canvasId);
-  const ctx = document.getElementById(canvasId);
-  if (!ctx) return null;
-  const isDark = document.documentElement.classList.contains('dark');
-  const textColor = isDark ? '#94a3b8' : '#5a6170';
-  const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+function formatNumber(val) {
+  return new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(val);
+}
 
-  // Apply theme defaults
-  if (config.options?.scales?.x) {
-    config.options.scales.x.ticks = { ...config.options.scales.x.ticks, color: textColor };
-    config.options.scales.x.grid = { ...config.options.scales.x.grid, color: gridColor };
+function sha256(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash |= 0;
   }
-  if (config.options?.scales?.y) {
-    config.options.scales.y.ticks = { ...config.options.scales.y.ticks, color: textColor };
-    config.options.scales.y.grid = { ...config.options.scales.y.grid, color: gridColor };
-  }
-  if (config.options?.plugins?.legend?.labels) {
-    config.options.plugins.legend.labels.color = textColor;
-  }
-
-  charts[canvasId] = new Chart(ctx, config);
-  return charts[canvasId];
+  return Math.abs(hash).toString(16);
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   RENDERING ENGINE
-   ═══════════════════════════════════════════════════════════════ */
+function calcTotals() {
+  const totals = {
+    totalValuation: 0,
+    totalPV: 0,
+    boursoValuation: 0,
+    boursoPV: 0,
+    jsmValuation: 0,
+    jsmPV: 0,
+    cryptoValuation: 0,
+    cryptoPV: 0,
+    structuredValuation: 0,
+    structuredPV: 0
+  };
 
-let currentTab = 'global';
-let sortState = {};
-let searchQuery = '';
-let filterType = 'all';
-let filterZone = 'all';
-let filterAccount = 'all';
+  POSITIONS.forEach(pos => {
+    totals.totalValuation += pos.valuation;
+    totals.totalPV += pos.pv;
 
-function switchTab(tabId) {
-  currentTab = tabId;
-  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tabId));
-  document.querySelectorAll('.section').forEach(s => s.classList.toggle('active', s.id === 'sec-'+tabId));
-  renderCurrentTab();
-}
-
-function renderCurrentTab() {
-  switch(currentTab) {
-    case 'global': renderGlobal(); break;
-    case 'bourso': renderAccount('Boursorama CTO','sec-bourso'); break;
-    case 'jsm': renderAccount('JSM Capital','sec-jsm'); break;
-    case 'struct': renderStruct(); break;
-    case 'btc': renderBTC(); break;
-    case 'geo': renderGeo(); break;
-  }
-}
-
-/* ─── TAB BAR ─── */
-function renderTabBar() {
-  const bar = document.getElementById('tabBar');
-  bar.innerHTML = TABS.map(t =>
-    `<button class="tab ${t.id===currentTab?'active':''}" data-tab="${t.id}" onclick="switchTab('${t.id}')">${t.label}</button>`
-  ).join('');
-}
-
-/* ─── GLOBAL VIEW ─── */
-function renderGlobal() {
-  const el = document.getElementById('sec-global');
-  const all = POSITIONS.filter(p => p.type !== 'Liquidités');
-  const totalVal = sum(POSITIONS, p=>p.valuation);
-  const totalPV = sum(all, p=>p.pv);
-  const totalCost = sum(all, p=>p.valuation - p.pv);
-  const perfPct = totalCost ? (totalPV/totalCost*100) : 0;
-  const nbLines = all.length;
-  const boursoVal = sum(POSITIONS.filter(p=>p.account==='Boursorama CTO'), p=>p.valuation);
-  const jsmVal = sum(POSITIONS.filter(p=>p.account==='JSM Capital'), p=>p.valuation);
-  const boursoPV = sum(POSITIONS.filter(p=>p.account==='Boursorama CTO'&&p.type!=='Liquidités'), p=>p.pv);
-  const jsmPV = sum(POSITIONS.filter(p=>p.account==='JSM Capital'&&p.type!=='Liquidités'), p=>p.pv);
-
-  // Top gainers / losers
-  const sorted = [...all].sort((a,b) => b.pv - a.pv);
-  const topGain = sorted.slice(0,5);
-  const topLoss = sorted.slice(-5).reverse();
-
-  // By type
-  const byType = groupBy(all, p=>p.type);
-  const typeData = Object.entries(byType).map(([k,v]) => ({label:k, val:sum(v,p=>p.valuation)})).sort((a,b)=>b.val-a.val);
-
-  // By zone
-  const byZone = groupBy(all.filter(p=>p.zone!=='-'), p=>p.zone);
-  const zoneData = Object.entries(byZone).map(([k,v]) => ({label:k, val:sum(v,p=>p.valuation)})).sort((a,b)=>b.val-a.val);
-
-  el.innerHTML = `
-    <!-- KPIs -->
-    <div class="kpi-grid">
-      <div class="kpi accent">
-        <div class="kpi-label">Portefeuille Total</div>
-        <div class="kpi-value">${fmtE(totalVal)}</div>
-        <div class="kpi-sub ${cls(totalPV)}">${fmtPV(totalPV)} (${fmtP(perfPct)})</div>
-      </div>
-      <div class="kpi">
-        <div class="kpi-label">Boursorama CTO</div>
-        <div class="kpi-value">${fmtE(boursoVal)}</div>
-        <div class="kpi-sub ${cls(boursoPV)}">${fmtPV(boursoPV)}</div>
-      </div>
-      <div class="kpi">
-        <div class="kpi-label">JSM Capital Natixis</div>
-        <div class="kpi-value">${fmtE(jsmVal)}</div>
-        <div class="kpi-sub ${cls(jsmPV)}">${fmtPV(jsmPV)}</div>
-      </div>
-      <div class="kpi">
-        <div class="kpi-label">Plus-Value Latente</div>
-        <div class="kpi-value ${cls(totalPV)}">${fmtPV(totalPV)}</div>
-        <div class="kpi-sub">${nbLines} lignes actives</div>
-      </div>
-    </div>
-
-    <!-- Charts Row 1: Type + Zone -->
-    <div class="chart-grid chart-grid-2">
-      <div class="chart-card">
-        <div class="chart-title">Répartition par classe d'actifs</div>
-        <div class="chart-wrap"><canvas id="ch-global-type"></canvas></div>
-      </div>
-      <div class="chart-card">
-        <div class="chart-title">Répartition géographique</div>
-        <div class="chart-wrap"><canvas id="ch-global-zone"></canvas></div>
-      </div>
-    </div>
-
-    <!-- Charts Row 2: Account + PV par type -->
-    <div class="chart-grid chart-grid-2">
-      <div class="chart-card">
-        <div class="chart-title">Répartition par compte</div>
-        <div class="chart-wrap short"><canvas id="ch-global-account"></canvas></div>
-      </div>
-      <div class="chart-card">
-        <div class="chart-title">Performance par classe d'actifs</div>
-        <div class="chart-wrap short"><canvas id="ch-global-pvtype"></canvas></div>
-      </div>
-    </div>
-
-    <!-- Top Gainers / Losers -->
-    <div class="chart-grid chart-grid-2">
-      <div class="chart-card">
-        <div class="chart-title"><span class="dot" style="background:var(--green)"></span> Top 5 Gains</div>
-        ${topGain.map(p => `
-          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border-light);font-size:0.85rem">
-            <div><span class="bold">${p.name}</span><br><span style="color:var(--text-tertiary);font-size:0.76rem">${p.isin} · ${p.account}</span></div>
-            <div style="text-align:right"><span class="pos bold">${fmtPV(p.pv)}</span><br><span class="pos" style="font-size:0.78rem">${fmtP(p.valuation-p.pv>0?p.pv/(p.valuation-p.pv)*100:0)}</span></div>
-          </div>
-        `).join('')}
-      </div>
-      <div class="chart-card">
-        <div class="chart-title"><span class="dot" style="background:var(--red)"></span> Top 5 Pertes</div>
-        ${topLoss.map(p => `
-          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border-light);font-size:0.85rem">
-            <div><span class="bold">${p.name}</span><br><span style="color:var(--text-tertiary);font-size:0.76rem">${p.isin} · ${p.account}</span></div>
-            <div style="text-align:right"><span class="neg bold">${fmtPV(p.pv)}</span><br><span class="neg" style="font-size:0.78rem">${fmtP(p.valuation-p.pv>0?p.pv/(p.valuation-p.pv)*100:0)}</span></div>
-          </div>
-        `).join('')}
-      </div>
-    </div>
-  `;
-
-  // Charts
-  makeChart('ch-global-type', {
-    type: 'doughnut',
-    data: {
-      labels: typeData.map(d=>d.label),
-      datasets: [{ data: typeData.map(d=>d.val), backgroundColor: typeData.map(d => TYPE_COLORS[d.label]||'#6b7280'), borderWidth: 2, borderColor: getComputedStyle(document.documentElement).getPropertyValue('--bg-card').trim() }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false, cutout: '62%',
-      plugins: {
-        legend: { position:'right', labels: { padding:12, usePointStyle:true, font:{size:12} } },
-        tooltip: { callbacks: { label: ctx => `${ctx.label}: ${fmtE(ctx.raw)} (${fmt(pct(ctx.raw, totalVal),1)}%)` } }
-      }
-    }
-  });
-
-  makeChart('ch-global-zone', {
-    type: 'doughnut',
-    data: {
-      labels: zoneData.map(d=>d.label),
-      datasets: [{ data: zoneData.map(d=>d.val), backgroundColor: zoneData.map((_,i)=>CHART_PALETTE[i%CHART_PALETTE.length]), borderWidth: 2, borderColor: getComputedStyle(document.documentElement).getPropertyValue('--bg-card').trim() }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false, cutout: '62%',
-      plugins: {
-        legend: { position:'right', labels: { padding:12, usePointStyle:true, font:{size:11} } },
-        tooltip: { callbacks: { label: ctx => `${ctx.label}: ${fmtE(ctx.raw)} (${fmt(pct(ctx.raw, totalVal),1)}%)` } }
-      }
-    }
-  });
-
-  makeChart('ch-global-account', {
-    type: 'bar',
-    data: {
-      labels: ['Boursorama CTO','JSM Capital Natixis'],
-      datasets: [{ data: [boursoVal, jsmVal], backgroundColor: ['#3b82f6','#8b5cf6'], borderRadius: 6, barThickness: 50 }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false, indexAxis:'y',
-      plugins: { legend:{display:false}, tooltip:{ callbacks:{ label: ctx => fmtE(ctx.raw) } } },
-      scales: { x:{beginAtZero:true, ticks:{callback:v=>fmtE(v)}, grid:{display:true}}, y:{grid:{display:false}} }
-    }
-  });
-
-  const pvByType = Object.entries(byType).map(([k,v]) => ({label:k, val:sum(v,p=>p.pv)})).sort((a,b)=>b.val-a.val);
-  makeChart('ch-global-pvtype', {
-    type: 'bar',
-    data: {
-      labels: pvByType.map(d=>d.label),
-      datasets: [{ data: pvByType.map(d=>d.val), backgroundColor: pvByType.map(d => d.val>=0?'#059669':'#dc2626'), borderRadius: 4 }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend:{display:false}, tooltip:{ callbacks:{ label: ctx => fmtPV(ctx.raw) } } },
-      scales: { y:{ticks:{callback:v=>fmtE(v)}, grid:{display:true}}, x:{grid:{display:false}} }
-    }
-  });
-}
-
-/* ─── ACCOUNT VIEW (Boursorama / JSM) ─── */
-function renderAccount(accountName, secId) {
-  const el = document.getElementById(secId);
-  const pos = POSITIONS.filter(p => p.account === accountName);
-  const all = pos.filter(p => p.type !== 'Liquidités');
-  const totalVal = sum(pos, p=>p.valuation);
-  const totalPV = sum(all, p=>p.pv);
-  const totalCost = sum(all, p=>p.valuation - p.pv);
-  const perfPct = totalCost ? totalPV/totalCost*100 : 0;
-  const liq = pos.find(p=>p.type==='Liquidités');
-
-  // Filtered list
-  let filtered = [...all];
-  if (searchQuery) {
-    const q = searchQuery.toLowerCase();
-    filtered = filtered.filter(p => p.name.toLowerCase().includes(q) || p.isin.toLowerCase().includes(q));
-  }
-  if (filterType !== 'all') filtered = filtered.filter(p => p.type === filterType);
-  if (filterZone !== 'all') filtered = filtered.filter(p => p.zone === filterZone);
-
-  // Sort
-  const st = sortState[secId] || {col:'valuation',dir:'desc'};
-  filtered.sort((a,b) => {
-    let va = a[st.col], vb = b[st.col];
-    if (typeof va === 'string') { va = va.toLowerCase(); vb = vb.toLowerCase(); }
-    if (va < vb) return st.dir === 'asc' ? -1 : 1;
-    if (va > vb) return st.dir === 'asc' ? 1 : -1;
-    return 0;
-  });
-
-  const types = [...new Set(all.map(p=>p.type))].sort();
-  const zones = [...new Set(all.map(p=>p.zone))].sort();
-
-  function thSort(col, label) {
-    const active = st.col === col;
-    const arrow = active ? (st.dir==='asc'?'▲':'▼') : '⇅';
-    return `<th class="num ${active?'sorted':''}" onclick="doSort('${secId}','${col}')">${label} <span class="sort-arrow">${arrow}</span></th>`;
-  }
-
-  el.innerHTML = `
-    <div class="kpi-grid">
-      <div class="kpi accent">
-        <div class="kpi-label">${accountName}</div>
-        <div class="kpi-value">${fmtE(totalVal)}</div>
-        <div class="kpi-sub ${cls(totalPV)}">${fmtPV(totalPV)} (${fmtP(perfPct)})</div>
-      </div>
-      <div class="kpi">
-        <div class="kpi-label">Plus-Value Latente</div>
-        <div class="kpi-value ${cls(totalPV)}">${fmtPV(totalPV)}</div>
-        <div class="kpi-sub">${all.length} positions</div>
-      </div>
-      <div class="kpi">
-        <div class="kpi-label">Liquidités</div>
-        <div class="kpi-value">${liq ? fmtE2(liq.valuation) : '—'}</div>
-        <div class="kpi-sub">${liq ? fmt(pct(liq.valuation, totalVal),2)+'% du total' : ''}</div>
-      </div>
-      <div class="kpi">
-        <div class="kpi-label">Performance</div>
-        <div class="kpi-value ${cls(perfPct)}">${fmtP(perfPct)}</div>
-        <div class="kpi-sub">sur coût total ${fmtE(totalCost)}</div>
-      </div>
-    </div>
-
-    <!-- Table -->
-    <div class="table-card">
-      <div class="table-header">
-        <div class="table-title">Positions ${accountName}</div>
-        <div class="table-count">${filtered.length} / ${all.length} lignes</div>
-      </div>
-      <div class="filter-bar">
-        <input class="search-input" placeholder="Rechercher par nom ou ISIN…" value="${searchQuery}" oninput="searchQuery=this.value;renderAccount('${accountName}','${secId}')">
-        <select class="filter-select" onchange="filterType=this.value;renderAccount('${accountName}','${secId}')">
-          <option value="all">Toutes classes</option>
-          ${types.map(t => `<option value="${t}" ${filterType===t?'selected':''}>${t}</option>`).join('')}
-        </select>
-        <select class="filter-select" onchange="filterZone=this.value;renderAccount('${accountName}','${secId}')">
-          <option value="all">Toutes zones</option>
-          ${zones.map(z => `<option value="${z}" ${filterZone===z?'selected':''}>${z}</option>`).join('')}
-        </select>
-      </div>
-      <div style="overflow-x:auto">
-        <table class="tbl">
-          <thead>
-            <tr>
-              <th onclick="doSort('${secId}','name')">Actif <span class="sort-arrow">${st.col==='name'?(st.dir==='asc'?'▲':'▼'):'⇅'}</span></th>
-              <th>Type</th>
-              <th>Zone</th>
-              ${thSort('valuation','Valorisation')}
-              ${thSort('pv','± Value')}
-              <th class="num">± %</th>
-              <th class="num">Poids</th>
-              <th class="num">PRU</th>
-              <th class="num">Cours</th>
-              <th class="num">Qté</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${filtered.map(p => {
-              const pvPct = (p.valuation - p.pv) > 0 ? p.pv / (p.valuation - p.pv) * 100 : 0;
-              const weight = pct(p.valuation, totalVal);
-              return `
-              <tr>
-                <td class="name-cell">
-                  <div class="name-main">${p.name}</div>
-                  <div class="name-sub">${p.isin} ${p.emetteur && p.emetteur !== '-' ? '· '+p.emetteur : ''}</div>
-                </td>
-                <td><span class="badge badge-${p.type==='Structuré'?'amber':p.type==='ETF'?'blue':p.type==='Action'?'neutral':'green'}">${p.type}</span></td>
-                <td style="font-size:0.82rem">${p.zone}</td>
-                <td class="num bold">${fmtE(p.valuation)}</td>
-                <td class="num ${cls(p.pv)} bold">${fmtPV(p.pv)}</td>
-                <td class="num ${cls(pvPct)}">${fmtP(pvPct)}</td>
-                <td class="num">
-                  <div class="weight-bar">
-                    <span>${fmt(weight,1)}%</span>
-                    <div class="weight-track"><div class="weight-fill" style="width:${Math.min(weight*3,100)}%"></div></div>
-                  </div>
-                </td>
-                <td class="num">${fmt(p.pru,2)}</td>
-                <td class="num">${fmt(p.price,2)}</td>
-                <td class="num">${fmt(p.qty,p.qty<10?4:0)}</td>
-              </tr>`;
-            }).join('')}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  `;
-}
-
-function doSort(secId, col) {
-  const st = sortState[secId] || {col:'valuation',dir:'desc'};
-  if (st.col === col) { st.dir = st.dir === 'asc' ? 'desc' : 'asc'; }
-  else { st.col = col; st.dir = col === 'name' ? 'asc' : 'desc'; }
-  sortState[secId] = st;
-  renderCurrentTab();
-}
-
-/* ─── STRUCTURED PRODUCTS ─── */
-function renderStruct() {
-  const el = document.getElementById('sec-struct');
-  const structs = POSITIONS.filter(p => p.type === 'Structuré');
-  const totalNominal = sum(structs, p => p.nominal || 0);
-  const totalValo = sum(structs, p => p.valuation);
-  const totalPV = sum(structs, p => p.pv);
-
-  // Strike distance analysis for each product
-  // ratio = valo/nominal → proxy for WO performance vs strike
-  // < 60% = danger (near barrier), 60-90% = far from autocall, 90-100% = close, >= 100% = autocallable
-  const alerts = structs.map(p => {
-    const ratio = p.nominal ? (p.valuation / p.nominal * 100) : 100;
-    const barrierPct = parseFloat(p.barriere) || 60;
-    const distToAutocall = 100 - ratio; // how far below strike (positive = below)
-    const distToBarrier = ratio - barrierPct; // cushion above barrier
-    let status, statusClass, statusIcon, detail;
-    if (ratio >= 100) {
-      status = 'AUTOCALL POSSIBLE';
-      statusClass = 'alert-success';
-      statusIcon = '&#x2714;';
-      detail = `Au-dessus du strike (${fmt(ratio,1)}%). Rappel possible à la prochaine date d'observation.`;
-    } else if (ratio >= 95) {
-      status = 'PROCHE DU STRIKE';
-      statusClass = 'alert-info';
-      statusIcon = '&#x25B2;';
-      detail = `À ${fmt(distToAutocall,1)} pts du strike. Un léger rebond du WO suffirait pour déclencher l'autocall.`;
-    } else if (ratio >= 85) {
-      status = 'EN DESSOUS DU STRIKE';
-      statusClass = 'alert-warning';
-      statusIcon = '&#x25CF;';
-      detail = `À ${fmt(distToAutocall,1)} pts du strike. Le WO doit regagner ~${fmt(distToAutocall,0)}% pour rendre le rappel possible.`;
+    if (pos.account === 'Boursorama CTO') {
+      totals.boursoValuation += pos.valuation;
+      totals.boursoPV += pos.pv;
     } else {
-      status = 'LOIN DU STRIKE';
-      statusClass = 'alert-danger';
-      statusIcon = '&#x25BC;';
-      detail = `À ${fmt(distToAutocall,1)} pts du strike. Rappel très improbable à court terme. Coussin barrière : ${fmt(distToBarrier,1)} pts.`;
+      totals.jsmValuation += pos.valuation;
+      totals.jsmPV += pos.pv;
     }
-    return { ...p, ratio, barrierPct, distToAutocall, distToBarrier, status, statusClass, statusIcon, detail };
+
+    if ((pos.type === 'ETC' || pos.type === 'ETF') && pos.subtype === 'Crypto') {
+      totals.cryptoValuation += pos.valuation;
+      totals.cryptoPV += pos.pv;
+    }
+
+    if (pos.type === 'Structuré') {
+      totals.structuredValuation += pos.valuation;
+      totals.structuredPV += pos.pv;
+    }
   });
 
-  // Global alert banner
-  const criticalCount = alerts.filter(a => a.ratio < 85).length;
-  const autocallCount = alerts.filter(a => a.ratio >= 100).length;
-  const nearCount = alerts.filter(a => a.ratio >= 95 && a.ratio < 100).length;
-  let globalAlert = '';
-  if (criticalCount > 0) {
-    globalAlert = `<div class="alert-banner alert-danger">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-      <div class="alert-banner-content">
-        <div class="alert-banner-title">${criticalCount} produit${criticalCount>1?'s':''} significativement sous le strike</div>
-        Le worst-of est bien en dessous du niveau initial. L'autocall n'est pas envisageable à court terme. Surveiller les prochaines dates d'observation.
-      </div>
-    </div>`;
-  }
-  if (autocallCount > 0) {
-    globalAlert += `<div class="alert-banner alert-success">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-      <div class="alert-banner-content">
-        <div class="alert-banner-title">${autocallCount} produit${autocallCount>1?'s':''} au-dessus du strike — autocall possible</div>
-        La valorisation dépasse le nominal. Le rappel anticipé peut intervenir à la prochaine date d'observation trimestrielle.
-      </div>
-    </div>`;
-  }
-  if (nearCount > 0) {
-    globalAlert += `<div class="alert-banner alert-info">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-      <div class="alert-banner-content">
-        <div class="alert-banner-title">${nearCount} produit${nearCount>1?'s':''} proche${nearCount>1?'s':''} du strike</div>
-        Un léger rebond du worst-of pourrait déclencher l'autocall. À surveiller de près.
-      </div>
-    </div>`;
-  }
-
-  el.innerHTML = `
-    ${globalAlert}
-
-    <div class="kpi-grid">
-      <div class="kpi accent">
-        <div class="kpi-label">Produits Structurés</div>
-        <div class="kpi-value">${fmtE(totalValo)}</div>
-        <div class="kpi-sub ${cls(totalPV)}">${fmtPV(totalPV)}</div>
-      </div>
-      <div class="kpi">
-        <div class="kpi-label">Nominal Total</div>
-        <div class="kpi-value">${fmtE(totalNominal)}</div>
-        <div class="kpi-sub">${structs.length} produits</div>
-      </div>
-      <div class="kpi">
-        <div class="kpi-label">Valo / Nominal</div>
-        <div class="kpi-value ${cls(totalValo-totalNominal)}">${fmt(totalValo/totalNominal*100,1)}%</div>
-        <div class="kpi-sub">${totalValo > totalNominal ? 'Au-dessus du pair' : 'Sous le pair'}</div>
-      </div>
-      <div class="kpi">
-        <div class="kpi-label">Poids dans le Portefeuille</div>
-        <div class="kpi-value">${fmt(pct(totalValo, sum(POSITIONS,p=>p.valuation)),1)}%</div>
-        <div class="kpi-sub">du total</div>
-      </div>
-    </div>
-
-    <!-- ═══ STRIKE DISTANCE MONITOR ═══ -->
-    <div class="table-card" style="margin-bottom:24px">
-      <div class="table-header">
-        <div class="table-title" style="display:flex;align-items:center;gap:8px">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-          Distance au Strike — Moniteur Autocall
-        </div>
-        <div class="table-count">Mise à jour auto avec les valorisations</div>
-      </div>
-      <div style="padding:20px;display:grid;gap:20px">
-        ${alerts.map(a => {
-          // Build the visual gauge
-          // Scale: 0% (left) = barrier, 100% (right) = 120% of nominal
-          // barrierPct is at left edge, 100% nominal is the strike, 120% is right edge
-          const gaugeMin = a.barrierPct; // e.g. 60
-          const gaugeMax = 120;
-          const gaugeRange = gaugeMax - gaugeMin; // 60
-          const cursorPos = Math.max(0, Math.min(100, (a.ratio - gaugeMin) / gaugeRange * 100));
-          const strikeLine = (100 - gaugeMin) / gaugeRange * 100; // position of 100% mark
-
-          let cursorColor;
-          if (a.ratio >= 100) cursorColor = '#059669';
-          else if (a.ratio >= 95) cursorColor = '#2563eb';
-          else if (a.ratio >= 85) cursorColor = '#d97706';
-          else cursorColor = '#dc2626';
-
-          return `
-          <div class="strike-gauge">
-            <div class="strike-gauge-header">
-              <div>
-                <div class="strike-gauge-name">${a.name}</div>
-                <div style="font-size:0.78rem;color:var(--text-tertiary)">${a.isin} · ${a.account} · Nominal ${fmtE(a.nominal||0)}</div>
-              </div>
-              <div>
-                <span class="badge ${a.ratio>=100?'badge-green':a.ratio>=95?'badge-blue':a.ratio>=85?'badge-amber':'badge-red'}" style="font-size:0.8rem;padding:4px 10px">${a.status}</span>
-              </div>
-            </div>
-
-            <div class="strike-track">
-              <div class="strike-zone-danger" style="width:${Math.max(0,(80-gaugeMin)/gaugeRange*100)}%"></div>
-              <div class="strike-zone-autocall" style="width:${(gaugeMax-100)/gaugeRange*100}%"></div>
-              <div class="strike-marker" style="left:${strikeLine}%;" title="Strike (100%)"></div>
-              <div class="strike-cursor" style="left:${cursorPos}%;background:${cursorColor}" title="Position actuelle: ${fmt(a.ratio,1)}%"></div>
-            </div>
-
-            <div class="strike-labels">
-              <span>Barrière ${a.barriere||'60%'}</span>
-              <span style="position:relative;left:${strikeLine-50}%">&#x25B2; Strike 100%</span>
-              <span>120%</span>
-            </div>
-
-            <div style="margin-top:10px;padding:10px 14px;background:var(--bg-body);border-radius:var(--radius-sm);font-size:0.83rem;color:var(--text-secondary)">
-              <strong>Valo actuelle : ${fmt(a.ratio,2)}%</strong> du nominal &mdash;
-              ${a.ratio >= 100
-                ? `<span class="pos">Au-dessus du strike de ${fmt(a.ratio-100,2)} pts. ${a.detail}</span>`
-                : `<span class="${a.ratio>=85?'':'neg'}">À <strong>${fmt(100-a.ratio,2)} pts</strong> sous le strike. ${a.detail}</span>`
-              }
-            </div>
-
-            <div class="strike-legend">
-              <div class="strike-legend-item"><div class="strike-legend-dot" style="background:#fecaca"></div> Zone danger (barrière)</div>
-              <div class="strike-legend-item"><div class="strike-legend-dot" style="background:${cursorColor}"></div> Position actuelle</div>
-              <div class="strike-legend-item"><div class="strike-legend-dot" style="background:#a7f3d0"></div> Zone autocall</div>
-              <div class="strike-legend-item"><div class="strike-legend-dot" style="background:var(--text-primary);width:4px;border-radius:1px"></div> Strike (100%)</div>
-            </div>
-          </div>`;
-        }).join('')}
-      </div>
-    </div>
-
-    <div class="struct-grid">
-      ${structs.map(p => {
-        const ratio = p.nominal ? (p.valuation / p.nominal * 100) : 100;
-        const barClass = ratio >= 100 ? 'green' : ratio >= 90 ? 'amber' : 'red';
-        return `
-        <div class="struct-card">
-          <div class="struct-card-head">
-            <div>
-              <div class="struct-name">${p.name}</div>
-              <div class="struct-meta">${p.isin} · ${p.account}</div>
-            </div>
-            <span class="badge ${p.pv>=0?'badge-green':'badge-red'}">${fmtPV(p.pv)}</span>
-          </div>
-          <div class="struct-row"><span class="struct-row-label">Émetteur</span><span class="struct-row-val">${p.emetteur||'-'}</span></div>
-          <div class="struct-row"><span class="struct-row-label">Sous-jacent</span><span class="struct-row-val">${p.sousjacent||'-'}</span></div>
-          <div class="struct-row"><span class="struct-row-label">Nominal</span><span class="struct-row-val">${fmtE(p.nominal||0)}</span></div>
-          <div class="struct-row"><span class="struct-row-label">Valorisation</span><span class="struct-row-val bold">${fmtE(p.valuation)}</span></div>
-          <div class="struct-row"><span class="struct-row-label">Valo / Nominal</span><span class="struct-row-val ${cls(ratio-100)}">${fmt(ratio,2)}%</span></div>
-          <div class="prog-bar"><div class="prog-fill ${barClass}" style="width:${Math.min(ratio,100)}%"></div></div>
-          <div class="struct-row"><span class="struct-row-label">Barrière</span><span class="struct-row-val">${p.barriere||'-'}</span></div>
-          <div class="struct-row"><span class="struct-row-label">Coupon</span><span class="struct-row-val">${p.coupon||'-'}</span></div>
-          <div class="struct-row"><span class="struct-row-label">Maturité</span><span class="struct-row-val">${p.maturite||'-'}</span></div>
-          <div class="struct-row"><span class="struct-row-label">Type</span><span class="struct-row-val"><span class="badge badge-amber">${p.subtype}</span></span></div>
-        </div>`;
-      }).join('')}
-    </div>
-
-    <div class="chart-grid chart-grid-2">
-      <div class="chart-card">
-        <div class="chart-title">Répartition par nominal</div>
-        <div class="chart-wrap short"><canvas id="ch-struct-alloc"></canvas></div>
-      </div>
-      <div class="chart-card">
-        <div class="chart-title">Performance par produit</div>
-        <div class="chart-wrap short"><canvas id="ch-struct-perf"></canvas></div>
-      </div>
-    </div>
-  `;
-
-  makeChart('ch-struct-alloc', {
-    type: 'doughnut',
-    data: {
-      labels: structs.map(p => p.name.substring(0,30)),
-      datasets: [{ data: structs.map(p=>p.nominal||0), backgroundColor: CHART_PALETTE, borderWidth: 2, borderColor: getComputedStyle(document.documentElement).getPropertyValue('--bg-card').trim() }]
-    },
-    options: { responsive:true, maintainAspectRatio:false, cutout:'55%', plugins:{ legend:{position:'right',labels:{font:{size:10},padding:8,usePointStyle:true}}, tooltip:{callbacks:{label:ctx=>`${fmtE(ctx.raw)}`}} } }
-  });
-
-  makeChart('ch-struct-perf', {
-    type: 'bar',
-    data: {
-      labels: structs.map(p => p.name.substring(0,25)),
-      datasets: [{ data: structs.map(p=>p.pv), backgroundColor: structs.map(p=>p.pv>=0?'#059669':'#dc2626'), borderRadius: 4 }]
-    },
-    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>fmtPV(ctx.raw)}}}, scales:{y:{ticks:{callback:v=>fmtE(v)},grid:{display:true}},x:{ticks:{font:{size:9}},grid:{display:false}}} }
-  });
+  return totals;
 }
 
-/* ─── BITCOIN & CRYPTO ─── */
-function renderBTC() {
-  const el = document.getElementById('sec-btc');
-  const cryptos = POSITIONS.filter(p => p.subtype === 'Crypto');
-  const totalVal = sum(cryptos, p=>p.valuation);
-  const totalPV = sum(cryptos, p=>p.pv);
-  const portfolioTotal = sum(POSITIONS, p=>p.valuation);
+function unlockApp() {
+  const pass = document.getElementById('passwordInput').value;
+  const hash = sha256(pass);
+  const expected = sha256('madar2026');
 
-  el.innerHTML = `
-    <div class="kpi-grid">
-      <div class="kpi accent">
-        <div class="kpi-label">Exposition Bitcoin & Crypto</div>
-        <div class="kpi-value">${fmtE(totalVal)}</div>
-        <div class="kpi-sub ${cls(totalPV)}">${fmtPV(totalPV)}</div>
-      </div>
-      <div class="kpi">
-        <div class="kpi-label">Poids dans le Portefeuille</div>
-        <div class="kpi-value">${fmt(pct(totalVal, portfolioTotal),2)}%</div>
-        <div class="kpi-sub">${cryptos.length} positions</div>
-      </div>
-      <div class="kpi">
-        <div class="kpi-label">Performance</div>
-        <div class="kpi-value ${cls(totalPV)}">${fmtP(totalPV/(totalVal-totalPV)*100)}</div>
-        <div class="kpi-sub">sur coût d'achat</div>
-      </div>
-    </div>
-
-    <div class="table-card">
-      <div class="table-header">
-        <div class="table-title">Positions Crypto</div>
-      </div>
-      <div style="overflow-x:auto">
-        <table class="tbl">
-          <thead>
-            <tr>
-              <th>Actif</th><th>Compte</th><th>ISIN</th>
-              <th class="num">Qté</th><th class="num">PRU</th><th class="num">Cours</th>
-              <th class="num">Valorisation</th><th class="num">± Value</th><th class="num">± %</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${cryptos.map(p => {
-              const pvPct = (p.valuation-p.pv)>0?p.pv/(p.valuation-p.pv)*100:0;
-              return `<tr>
-                <td><div class="name-main">${p.name}</div><div class="name-sub">${p.emetteur}</div></td>
-                <td><span class="badge badge-blue">${p.account}</span></td>
-                <td style="font-size:0.8rem;color:var(--text-tertiary)">${p.isin}</td>
-                <td class="num">${fmt(p.qty,0)}</td>
-                <td class="num">${fmt(p.pru,2)} ${p.ccy}</td>
-                <td class="num">${fmt(p.price,2)} ${p.ccy}</td>
-                <td class="num bold">${fmtE(p.valuation)}</td>
-                <td class="num ${cls(p.pv)} bold">${fmtPV(p.pv)}</td>
-                <td class="num ${cls(pvPct)}">${fmtP(pvPct)}</td>
-              </tr>`;
-            }).join('')}
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <div class="chart-grid chart-grid-2">
-      <div class="chart-card">
-        <div class="chart-title">Répartition par compte</div>
-        <div class="chart-wrap short"><canvas id="ch-btc-alloc"></canvas></div>
-      </div>
-      <div class="chart-card">
-        <div class="chart-title">Performance par position</div>
-        <div class="chart-wrap short"><canvas id="ch-btc-perf"></canvas></div>
-      </div>
-    </div>
-  `;
-
-  makeChart('ch-btc-alloc', {
-    type: 'doughnut',
-    data: {
-      labels: cryptos.map(p=>p.account),
-      datasets:[{data:cryptos.map(p=>p.valuation),backgroundColor:['#f59e0b','#8b5cf6'],borderWidth:2,borderColor:getComputedStyle(document.documentElement).getPropertyValue('--bg-card').trim()}]
-    },
-    options:{responsive:true,maintainAspectRatio:false,cutout:'55%',plugins:{legend:{position:'right',labels:{usePointStyle:true,padding:12}},tooltip:{callbacks:{label:ctx=>fmtE(ctx.raw)}}}}
-  });
-
-  makeChart('ch-btc-perf', {
-    type: 'bar',
-    data: {
-      labels: cryptos.map(p=>p.account),
-      datasets:[{data:cryptos.map(p=>p.pv),backgroundColor:cryptos.map(p=>p.pv>=0?'#059669':'#dc2626'),borderRadius:6,barThickness:40}]
-    },
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>fmtPV(ctx.raw)}}},scales:{y:{ticks:{callback:v=>fmtE(v)}},x:{grid:{display:false}}}}
-  });
-}
-
-/* ─── GEOGRAPHIC VIEW ─── */
-function renderGeo() {
-  const el = document.getElementById('sec-geo');
-  const all = POSITIONS.filter(p => p.type !== 'Liquidités' && p.zone !== '-');
-  const totalVal = sum(all, p=>p.valuation);
-  const byZone = groupBy(all, p=>p.zone);
-  const zoneData = Object.entries(byZone).map(([k,v]) => ({
-    label: k,
-    val: sum(v,p=>p.valuation),
-    pv: sum(v,p=>p.pv),
-    count: v.length
-  })).sort((a,b)=>b.val-a.val);
-
-  el.innerHTML = `
-    <div class="kpi-grid">
-      ${zoneData.slice(0,4).map(z => `
-        <div class="kpi">
-          <div class="kpi-label">${z.label}</div>
-          <div class="kpi-value">${fmtE(z.val)}</div>
-          <div class="kpi-sub">${fmt(pct(z.val,totalVal),1)}% · ${z.count} lignes · <span class="${cls(z.pv)}">${fmtPV(z.pv)}</span></div>
-        </div>
-      `).join('')}
-    </div>
-
-    <div class="geo-grid">
-      <div class="chart-card">
-        <div class="chart-title">Exposition géographique</div>
-        <div style="padding:8px 0">
-          ${zoneData.map(z => {
-            const w = pct(z.val, totalVal);
-            const color = GEO_COLORS[z.label] || '#6b7280';
-            return `
-            <div class="geo-bar-item">
-              <div class="geo-label">${z.label}</div>
-              <div class="geo-track"><div class="geo-fill" style="width:${w}%;background:${color}"></div></div>
-              <div class="geo-val">${fmtE(z.val)}</div>
-              <div class="geo-pct">${fmt(w,1)}%</div>
-            </div>`;
-          }).join('')}
-        </div>
-      </div>
-      <div class="chart-card">
-        <div class="chart-title">Répartition géographique</div>
-        <div class="chart-wrap"><canvas id="ch-geo-pie"></canvas></div>
-      </div>
-    </div>
-
-    <!-- Performance par zone -->
-    <div class="chart-grid chart-grid-1-2">
-      <div class="chart-card">
-        <div class="chart-title">± Value par zone</div>
-        <div class="chart-wrap"><canvas id="ch-geo-pv"></canvas></div>
-      </div>
-      <div class="chart-card">
-        <div class="chart-title">Détail par zone géographique</div>
-        <div style="overflow-x:auto">
-          <table class="tbl">
-            <thead><tr><th>Zone</th><th class="num">Valorisation</th><th class="num">± Value</th><th class="num">Poids</th><th class="num">Lignes</th></tr></thead>
-            <tbody>
-              ${zoneData.map(z => `
-                <tr>
-                  <td class="bold">${z.label}</td>
-                  <td class="num">${fmtE(z.val)}</td>
-                  <td class="num ${cls(z.pv)}">${fmtPV(z.pv)}</td>
-                  <td class="num">${fmt(pct(z.val,totalVal),1)}%</td>
-                  <td class="num">${z.count}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  `;
-
-  makeChart('ch-geo-pie', {
-    type: 'doughnut',
-    data: {
-      labels: zoneData.map(d=>d.label),
-      datasets:[{data:zoneData.map(d=>d.val),backgroundColor:zoneData.map(d=>GEO_COLORS[d.label]||'#6b7280'),borderWidth:2,borderColor:getComputedStyle(document.documentElement).getPropertyValue('--bg-card').trim()}]
-    },
-    options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{position:'right',labels:{usePointStyle:true,padding:10,font:{size:11}}},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${fmtE(ctx.raw)} (${fmt(pct(ctx.raw,totalVal),1)}%)`}}}}
-  });
-
-  makeChart('ch-geo-pv', {
-    type: 'bar',
-    data: {
-      labels: zoneData.map(d=>d.label),
-      datasets:[{data:zoneData.map(d=>d.pv),backgroundColor:zoneData.map(d=>d.pv>=0?'#059669':'#dc2626'),borderRadius:4}]
-    },
-    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>fmtPV(ctx.raw)}}},scales:{x:{ticks:{callback:v=>fmtE(v)},grid:{display:true}},y:{grid:{display:false}}}}
-  });
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   THEME TOGGLE
-   ═══════════════════════════════════════════════════════════════ */
-function toggleTheme() {
-  document.documentElement.classList.toggle('dark');
-  const isDark = document.documentElement.classList.contains('dark');
-  const icon = document.getElementById('themeIcon');
-  icon.innerHTML = isDark
-    ? '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>'
-    : '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
-  // Re-render to update chart colors
-  renderCurrentTab();
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   IMPORT / EXPORT
-   ═══════════════════════════════════════════════════════════════ */
-function openImport() { document.getElementById('importModal').classList.add('open'); }
-function closeImport() { document.getElementById('importModal').classList.remove('open'); }
-
-// Drag & drop
-const dropZone = document.getElementById('dropZone');
-if (dropZone) {
-  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
-  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
-  dropZone.addEventListener('drop', e => {
-    e.preventDefault(); dropZone.classList.remove('dragover');
-    if (e.dataTransfer.files.length) processFile(e.dataTransfer.files[0]);
-  });
-}
-
-function handleImport(e) { if (e.target.files.length) processFile(e.target.files[0]); }
-
-function processFile(file) {
-  const result = document.getElementById('importResult');
-  const name = file.name.toLowerCase();
-  if (name.endsWith('.csv')) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const lines = e.target.result.split('\n').filter(l=>l.trim());
-      result.innerHTML = `<div class="badge badge-green" style="padding:8px 14px;font-size:0.85rem">CSV chargé : ${lines.length-1} lignes détectées</div>
-        <p style="margin-top:10px;font-size:0.83rem;color:var(--text-secondary)">Colonnes : ${lines[0].split(';').slice(0,5).join(', ')}…</p>
-        <p style="margin-top:6px;font-size:0.82rem;color:var(--text-tertiary)">L'intégration automatique sera disponible dans la prochaine version. Vous pouvez copier le JSON des positions et les ajouter dans le code source.</p>`;
-    };
-    reader.readAsText(file);
+  if (hash === expected) {
+    sessionStorage.setItem('authenticated', 'true');
+    document.getElementById('lockScreen').classList.add('hidden');
+    document.getElementById('appContainer').style.display = 'flex';
+    init();
   } else {
-    result.innerHTML = `<div class="badge badge-amber" style="padding:8px 14px;font-size:0.85rem">Fichier détecté : ${file.name} (${(file.size/1024).toFixed(0)} Ko)</div>
-      <p style="margin-top:10px;font-size:0.82rem;color:var(--text-tertiary)">Le parsing automatique de PDF et Excel sera disponible dans une prochaine version. Pour l'instant, les données sont intégrées manuellement dans le dashboard.</p>`;
+    alert('Invalid password');
   }
 }
 
-function exportCSV() {
-  const all = POSITIONS.filter(p => p.type !== 'Liquidités');
-  const headers = ['Compte','Nom','ISIN','Type','Zone','Qté','PRU','Cours','Valorisation','PV','PV%','Devise','Émetteur'];
-  const rows = all.map(p => {
-    const pvPct = (p.valuation-p.pv)>0 ? (p.pv/(p.valuation-p.pv)*100).toFixed(2) : '0';
-    return [p.account,`"${p.name}"`,p.isin,p.type,p.zone,p.qty,p.pru.toFixed(4),p.price.toFixed(4),p.valuation.toFixed(2),p.pv.toFixed(2),pvPct,p.ccy,p.emetteur||''].join(';');
-  });
-  const csv = '\uFEFF' + headers.join(';') + '\n' + rows.join('\n');
-  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = `portfolio-export-${new Date().toISOString().slice(0,10)}.csv`;
-  a.click(); URL.revokeObjectURL(url);
+function logout() {
+  sessionStorage.removeItem('authenticated');
+  document.getElementById('lockScreen').classList.remove('hidden');
+  document.getElementById('appContainer').style.display = 'none';
+  document.getElementById('passwordInput').value = '';
+  document.getElementById('passwordInput').focus();
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   INITIALIZATION
-   ═══════════════════════════════════════════════════════════════ */
-let dashboardInitialized = false;
-function initDashboard() {
-  if (dashboardInitialized) return;
-  dashboardInitialized = true;
-  document.getElementById('topDate').textContent = new Date().toLocaleDateString('fr-FR', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
-  renderTabBar();
-  switchTab('global');
+function switchTab(tab) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+  event.target.closest('.nav-item').classList.add('active');
+  document.getElementById(tab + '-section').classList.add('active');
+
+  const titles = {
+    'dashboard': 'Tableau de Bord',
+    'positions': 'Positions',
+    'performance': 'Performance',
+    'allocation': 'Allocation',
+    'structured': 'Produits Structurés',
+    'crypto': 'Bitcoin & Crypto',
+    'geography': 'Géographie'
+  };
+  document.getElementById('portfolioTitle').textContent = titles[tab];
+
+  if (tab === 'positions') renderPositions();
+  else if (tab === 'performance') renderPerformance();
+  else if (tab === 'allocation') renderAllocation();
+  else if (tab === 'structured') renderStructured();
+  else if (tab === 'crypto') renderCrypto();
+  else if (tab === 'geography') renderGeography();
+  else if (tab === 'dashboard') renderDashboard();
 }
+
+function renderDashboard() {
+  const totals = calcTotals();
+  const pvPercent = (totals.totalPV / (totals.totalValuation - totals.totalPV)) * 100;
+
+  document.getElementById('netWorth').textContent = formatCurrency(totals.totalValuation);
+  document.getElementById('totalPortfolio').textContent = formatCurrency(totals.totalValuation);
+  document.getElementById('portfolioChange').textContent = `${totals.totalPV >= 0 ? '+' : ''}${formatCurrency(totals.totalPV)} (${formatPercent(pvPercent)})`;
+  document.getElementById('boursoValue').textContent = formatCurrency(totals.boursoValuation);
+  document.getElementById('boursoChange').textContent = `${totals.boursoPV >= 0 ? '+' : ''}${formatCurrency(totals.boursoPV)}`;
+  document.getElementById('jsmValue').textContent = formatCurrency(totals.jsmValuation);
+  document.getElementById('jsmChange').textContent = `${totals.jsmPV >= 0 ? '+' : ''}${formatCurrency(totals.jsmPV)}`;
+
+  renderDashboardCharts(totals);
+  renderTopMovers();
+}
+
+function renderDashboardCharts(totals) {
+  const assetClasses = {};
+  POSITIONS.forEach(pos => {
+    const type = pos.type;
+    if (!assetClasses[type]) assetClasses[type] = 0;
+    assetClasses[type] += pos.valuation;
+  });
+
+  const ctx1 = document.getElementById('dashboardAllocationChart').getContext('2d');
+  new Chart(ctx1, {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(assetClasses),
+      datasets: [{
+        data: Object.values(assetClasses),
+        backgroundColor: ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#6366f1']
+      }]
+    },
+    options: { responsive: true, maintainAspectRatio: true }
+  });
+
+  const ctx2 = document.getElementById('assetClassChart').getContext('2d');
+  new Chart(ctx2, {
+    type: 'bar',
+    data: {
+      labels: Object.keys(assetClasses),
+      datasets: [{
+        label: 'Valeur €',
+        data: Object.values(assetClasses),
+        backgroundColor: '#3b82f6'
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false
+    }
+  });
+}
+
+function renderTopMovers() {
+  const sorted = [...POSITIONS].sort((a, b) => (b.pv - a.pv));
+  let html = '';
+  const topMovers = [...sorted.slice(0, 3), ...sorted.slice(-2)];
+
+  topMovers.forEach(pos => {
+    const badge = pos.pv >= 0 ? 'badge-positive' : 'badge-negative';
+    const pvPercent = pos.valuation > 0 ? (pos.pv / (pos.valuation - pos.pv)) * 100 : 0;
+    html += `<div style="margin-bottom: 12px;">
+      <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+        <span style="font-weight: 500; font-size: 13px;">${pos.name.substring(0, 30)}</span>
+        <span class="badge ${badge}">${pos.pv >= 0 ? '+' : ''}${formatPercent(pvPercent)}</span>
+      </div>
+      <div style="font-size: 12px; color: var(--text-light);">${formatCurrency(pos.pv)}</div>
+    </div>`;
+  });
+
+  document.getElementById('topMovers').innerHTML = html;
+}
+
+function renderPositions() {
+  const tbody = document.getElementById('positionsTableBody');
+  const totals = calcTotals();
+
+  let html = '';
+  POSITIONS.forEach(pos => {
+    const pvPercent = pos.valuation > 0 ? (pos.pv / (pos.valuation - pos.pv)) * 100 : 0;
+    const weight = (pos.valuation / totals.totalValuation) * 100;
+    const pvBadge = pos.pv >= 0 ? 'badge-positive' : 'badge-negative';
+
+    html += `<tr>
+      <td><strong>${pos.name}</strong></td>
+      <td><span class="badge badge-neutral">${pos.account === 'Boursorama CTO' ? 'Bourso' : 'JSM'}</span></td>
+      <td><span class="badge badge-neutral">${pos.type}</span></td>
+      <td>${pos.zone}</td>
+      <td>${formatNumber(pos.qty)}</td>
+      <td>${formatCurrency(pos.pru)}</td>
+      <td>${formatCurrency(pos.price)}</td>
+      <td><strong>${formatCurrency(pos.valuation)}</strong></td>
+      <td class="${pos.pv >= 0 ? 'text-positive' : 'text-negative'}">${pos.pv >= 0 ? '+' : ''}${formatCurrency(pos.pv)}</td>
+      <td><span class="badge ${pvBadge}">${pos.pv >= 0 ? '+' : ''}${formatPercent(pvPercent)}</span></td>
+      <td>${formatPercent(weight)}</td>
+    </tr>`;
+  });
+
+  tbody.innerHTML = html;
+  renderTreemap(totals);
+  renderHeatmap();
+}
+
+function renderTreemap(totals) {
+  const container = document.getElementById('treemapContainer');
+  container.innerHTML = '';
+
+  const sorted = POSITIONS.filter(p => p.valuation > 0).sort((a, b) => b.valuation - a.valuation);
+  const maxVal = sorted[0].valuation;
+  const colors = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#6366f1', '#ec4899', '#14b8a6'];
+
+  sorted.forEach((pos, idx) => {
+    const size = Math.sqrt((pos.valuation / maxVal) * 10000);
+    const color = colors[idx % colors.length];
+    const pvPercent = pos.valuation > 0 ? (pos.pv / (pos.valuation - pos.pv)) * 100 : 0;
+
+    const div = document.createElement('div');
+    div.className = 'treemap-item';
+    div.style.width = size + 'px';
+    div.style.height = size + 'px';
+    div.style.background = color;
+    div.innerHTML = `<div class="treemap-name">${pos.name.substring(0, 20)}</div><div class="treemap-value">${formatCurrency(pos.valuation)}</div>`;
+    div.title = `${pos.name}\n${formatCurrency(pos.valuation)}\n${formatPercent(pvPercent)}`;
+
+    container.appendChild(div);
+  });
+}
+
+function renderHeatmap() {
+  const container = document.getElementById('performanceHeatmap');
+  container.innerHTML = '';
+
+  POSITIONS.forEach(pos => {
+    const pvPercent = pos.valuation > 0 ? (pos.pv / (pos.valuation - pos.pv)) * 100 : 0;
+    let color = '#10b981';
+    if (pvPercent < -5) color = '#ef4444';
+    else if (pvPercent < 0) color = '#f59e0b';
+    else if (pvPercent > 10) color = '#059669';
+
+    const cell = document.createElement('div');
+    cell.className = 'heatmap-cell';
+    cell.style.background = color;
+    cell.title = `${pos.name}: ${formatPercent(pvPercent)}`;
+    cell.textContent = pvPercent.toFixed(0) + '%';
+    container.appendChild(cell);
+  });
+}
+
+function renderPerformance() {
+  const totals = calcTotals();
+  const pvPercent = totals.totalValuation > 0 ? (totals.totalPV / (totals.totalValuation - totals.totalPV)) * 100 : 0;
+
+  document.getElementById('totalReturn').textContent = formatPercent(pvPercent);
+
+  const best = POSITIONS.reduce((a, b) => {
+    const aPercent = a.valuation > 0 ? (a.pv / (a.valuation - a.pv)) * 100 : -Infinity;
+    const bPercent = b.valuation > 0 ? (b.pv / (b.valuation - b.pv)) * 100 : -Infinity;
+    return aPercent > bPercent ? a : b;
+  });
+  const worst = POSITIONS.reduce((a, b) => {
+    const aPercent = a.valuation > 0 ? (a.pv / (a.valuation - a.pv)) * 100 : Infinity;
+    const bPercent = b.valuation > 0 ? (b.pv / (b.valuation - b.pv)) * 100 : Infinity;
+    return aPercent < bPercent ? a : b;
+  });
+
+  document.getElementById('bestPerformer').textContent = best.name.substring(0, 30);
+  const bestPercent = best.valuation > 0 ? (best.pv / (best.valuation - best.pv)) * 100 : 0;
+
+  document.getElementById('worstPerformer').textContent = worst.name.substring(0, 30);
+
+  const topPerformers = POSITIONS.sort((a, b) => {
+    const aPercent = a.valuation > 0 ? (a.pv / (a.valuation - a.pv)) * 100 : -Infinity;
+    const bPercent = b.valuation > 0 ? (b.pv / (b.valuation - b.pv)) * 100 : -Infinity;
+    return bPercent - aPercent;
+  }).slice(0, 10);
+
+  let html = '';
+  topPerformers.forEach(pos => {
+    const pvPercent = pos.valuation > 0 ? (pos.pv / (pos.valuation - pos.pv)) * 100 : 0;
+    const badge = pvPercent >= 0 ? 'badge-positive' : 'badge-negative';
+    html += `<tr>
+      <td>${pos.name}</td>
+      <td>${formatCurrency(pos.pru)}</td>
+      <td>${formatCurrency(pos.price)}</td>
+      <td>${pos.pv >= 0 ? '+' : ''}${formatCurrency(pos.pv)}</td>
+      <td><span class="badge ${badge}">${pvPercent >= 0 ? '+' : ''}${formatPercent(pvPercent)}</span></td>
+    </tr>`;
+  });
+
+  document.getElementById('topPerformersBody').innerHTML = html;
+}
+
+function renderAllocation() {
+  const totals = calcTotals();
+
+  const assetClasses = {};
+  POSITIONS.forEach(pos => {
+    const type = pos.type;
+    if (!assetClasses[type]) assetClasses[type] = 0;
+    assetClasses[type] += pos.valuation;
+  });
+
+  const ctx1 = document.getElementById('allocationAssetChart').getContext('2d');
+  new Chart(ctx1, {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(assetClasses),
+      datasets: [{
+        data: Object.values(assetClasses),
+        backgroundColor: ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#6366f1']
+      }]
+    },
+    options: { responsive: true, maintainAspectRatio: true }
+  });
+
+  const zones = {};
+  POSITIONS.forEach(pos => {
+    const zone = pos.zone;
+    if (!zones[zone]) zones[zone] = 0;
+    zones[zone] += pos.valuation;
+  });
+
+  const ctx2 = document.getElementById('allocationGeoChart').getContext('2d');
+  new Chart(ctx2, {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(zones),
+      datasets: [{
+        data: Object.values(zones),
+        backgroundColor: ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#6366f1', '#ec4899', '#14b8a6']
+      }]
+    },
+    options: { responsive: true, maintainAspectRatio: true }
+  });
+
+  const ccys = {};
+  POSITIONS.forEach(pos => {
+    if (!ccys[pos.ccy]) ccys[pos.ccy] = 0;
+    ccys[pos.ccy] += pos.valuation;
+  });
+
+  const ctx3 = document.getElementById('allocationCurrencyChart').getContext('2d');
+  new Chart(ctx3, {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(ccys),
+      datasets: [{
+        data: Object.values(ccys),
+        backgroundColor: ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b']
+      }]
+    },
+    options: { responsive: true, maintainAspectRatio: true }
+  });
+
+  const targets = {
+    'Actions ETF': { current: 40, target: 40 },
+    'Produits Structurés': { current: 10.4, target: 20 },
+    'Obligations': { current: 2.5, target: 15 },
+    'Crypto': { current: 4.9, target: 10 },
+    'Cash/Monétaire': { current: 33, target: 10 },
+    'Or': { current: 1.2, target: 5 }
+  };
+
+  let html = '';
+  Object.entries(targets).forEach(([name, data]) => {
+    const currentPercent = (data.current / 100) * 100;
+    html += `<div style="margin-bottom: 20px;">
+      <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+        <span>${name}</span>
+        <span><strong>${data.current}%</strong> / ${data.target}%</span>
+      </div>
+      <div class="mini-bar">
+        <div class="mini-bar-fill" style="width: ${currentPercent}%;"></div>
+      </div>
+    </div>`;
+  });
+
+  document.getElementById('allocationTargets').innerHTML = html;
+}
+
+function renderStructured() {
+  const structured = POSITIONS.filter(p => p.type === 'Structuré');
+  const totalVal = structured.reduce((a, b) => a + b.valuation, 0);
+  const totalPV = structured.reduce((a, b) => a + b.pv, 0);
+
+  document.getElementById('structuredCount').textContent = structured.length;
+  document.getElementById('structuredPL').textContent = `${totalPV >= 0 ? '+' : ''}${formatCurrency(totalPV)}`;
+
+  let html = '';
+  structured.forEach(prod => {
+    const pvPercent = prod.valuation > 0 ? (prod.pv / (prod.valuation - prod.pv)) * 100 : 0;
+    const badge = prod.pv >= 0 ? 'badge-positive' : 'badge-negative';
+
+    html += `<div style="background: var(--white); border: 1px solid var(--border-gray); border-radius: 12px; padding: 20px; margin-bottom: 16px;">
+      <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+        <div>
+          <div style="font-weight: 600; margin-bottom: 4px;">${prod.name}</div>
+          <div style="font-size: 12px; color: var(--text-light);">Émetteur: ${prod.emetteur} | Nominal: ${formatCurrency(prod.nominal)}</div>
+        </div>
+        <span class="badge ${badge}">${pvPercent >= 0 ? '+' : ''}${formatPercent(pvPercent)}</span>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; font-size: 12px;">
+        <div><span style="color: var(--text-light);">Valeur</span><div style="font-weight: 600;">${formatCurrency(prod.valuation)}</div></div>
+        <div><span style="color: var(--text-light);">P&L</span><div style="font-weight: 600;">${prod.pv >= 0 ? '+' : ''}${formatCurrency(prod.pv)}</div></div>
+        <div><span style="color: var(--text-light);">Coupon</span><div style="font-weight: 600;">${prod.coupon}</div></div>
+        <div><span style="color: var(--text-light);">Barrière</span><div style="font-weight: 600;">${prod.barriere}</div></div>
+      </div>
+    </div>`;
+  });
+
+  document.getElementById('structuredProducts').innerHTML = html;
+}
+
+function renderCrypto() {
+  const crypto = POSITIONS.filter(p => (p.type === 'ETC' || p.type === 'ETF') && p.subtype === 'Crypto');
+  const totalVal = crypto.reduce((a, b) => a + b.valuation, 0);
+  const totalPV = crypto.reduce((a, b) => a + b.pv, 0);
+  const totals = calcTotals();
+  const totalPercentage = (totalVal / totals.totalValuation) * 100;
+
+  document.getElementById('cryptoTotal').textContent = formatCurrency(totalVal);
+  document.getElementById('cryptoPercent').textContent = `${formatPercent(totalPercentage)} du portefeuille`;
+  document.getElementById('cryptoPL').textContent = `${totalPV >= 0 ? '+' : ''}${formatCurrency(totalPV)}`;
+
+  let html = '';
+  crypto.forEach(pos => {
+    const pvPercent = pos.valuation > 0 ? (pos.pv / (pos.valuation - pos.pv)) * 100 : 0;
+    const badge = pos.pv >= 0 ? 'badge-positive' : 'badge-negative';
+
+    html += `<tr>
+      <td><strong>${pos.name}</strong></td>
+      <td><span class="badge badge-neutral">${pos.account === 'Boursorama CTO' ? 'Bourso' : 'JSM'}</span></td>
+      <td>${formatNumber(pos.qty)}</td>
+      <td>${formatCurrency(pos.price)}</td>
+      <td><strong>${formatCurrency(pos.valuation)}</strong></td>
+      <td class="${pos.pv >= 0 ? 'text-positive' : 'text-negative'}">${pos.pv >= 0 ? '+' : ''}${formatCurrency(pos.pv)}</td>
+      <td><span class="badge ${badge}">${pvPercent >= 0 ? '+' : ''}${formatPercent(pvPercent)}</span></td>
+    </tr>`;
+  });
+
+  document.getElementById('cryptoBody').innerHTML = html;
+}
+
+function renderGeography() {
+  const zones = {};
+  const totals = calcTotals();
+
+  POSITIONS.forEach(pos => {
+    const zone = pos.zone;
+    if (!zones[zone]) zones[zone] = 0;
+    zones[zone] += pos.valuation;
+  });
+
+  const ctx = document.getElementById('geoChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(zones),
+      datasets: [{
+        data: Object.values(zones),
+        backgroundColor: ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#6366f1', '#ec4899', '#14b8a6']
+      }]
+    },
+    options: { responsive: true, maintainAspectRatio: true }
+  });
+
+  let html = '';
+  Object.entries(zones).forEach(([zone, val]) => {
+    const percent = (val / totals.totalValuation) * 100;
+    html += `<div style="margin-bottom: 16px;">
+      <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+        <span>${zone}</span>
+        <strong>${formatPercent(percent)}</strong>
+      </div>
+      <div class="mini-bar">
+        <div class="mini-bar-fill" style="width: ${percent}%;"></div>
+      </div>
+      <div style="font-size: 12px; color: var(--text-light);">${formatCurrency(val)}</div>
+    </div>`;
+  });
+
+  document.getElementById('geoDistribution').innerHTML = html;
+}
+
+function filterPositions() {}
+
+function sortTable(col) {}
+
+function toggleTheme() {
+  document.body.classList.toggle('dark-theme');
+  localStorage.setItem('theme', document.body.classList.contains('dark-theme') ? 'dark' : 'light');
+}
+
+function init() {
+  if (!sessionStorage.getItem('authenticated')) {
+    document.getElementById('lockScreen').classList.remove('hidden');
+    document.getElementById('appContainer').style.display = 'none';
+    document.getElementById('passwordInput').focus();
+  } else {
+    document.getElementById('lockScreen').classList.add('hidden');
+    document.getElementById('appContainer').style.display = 'flex';
+  }
+
+  if (localStorage.getItem('theme') === 'dark') {
+    document.body.classList.add('dark-theme');
+  }
+
+  document.getElementById('passwordInput').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') unlockApp();
+  });
+
+  renderDashboard();
+}
+
+document.addEventListener('DOMContentLoaded', init);
 </script>
+
 </body>
 </html>
