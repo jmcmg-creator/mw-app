@@ -919,6 +919,20 @@
         </div>
       </div>
 
+      <!-- Graphique Niveaux vs Barrières -->
+      <div style="background: var(--white); border: 1px solid var(--border-gray); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+        <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 4px;">Niveau Actuel vs Barrières</h3>
+        <p style="font-size: 12px; color: var(--text-light); margin-bottom: 16px;">Position de chaque produit par rapport aux seuils de remboursement anticipé et de protection du capital</p>
+        <canvas id="barriersChart" height="280"></canvas>
+      </div>
+
+      <!-- Graphique Évolution Simulée -->
+      <div style="background: var(--white); border: 1px solid var(--border-gray); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+        <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 4px;">Évolution depuis l’Émission</h3>
+        <p style="font-size: 12px; color: var(--text-light); margin-bottom: 16px;">Trajectoire estimée du sous-jacent depuis la date de souscription (basé sur le niveau actuel)</p>
+        <canvas id="evolutionChart" height="320"></canvas>
+      </div>
+
       <div id="structuredProducts"></div>
     </div>
 
@@ -1458,29 +1472,301 @@ function renderStructured() {
   document.getElementById('structuredCount').textContent = structured.length;
   document.getElementById('structuredPL').textContent = `${totalPV >= 0 ? '+' : ''}${formatCurrency(totalPV)}`;
 
+  const isDark = document.body.classList.contains('dark-theme');
+
   let html = '';
   structured.forEach(prod => {
     const pvPercent = prod.valuation > 0 ? (prod.pv / (prod.valuation - prod.pv)) * 100 : 0;
     const badge = prod.pv >= 0 ? 'badge-positive' : 'badge-negative';
 
+    const niveauActuel = ((prod.price / prod.nominal) * 100).toFixed(1);
+    const protBarrier = parseFloat(prod.barriere);
+    const margeProtection = (parseFloat(niveauActuel) - protBarrier).toFixed(1);
+    const barWidth = Math.min(100, Math.max(0, (parseFloat(niveauActuel) / 120) * 100));
+    const protWidth = (protBarrier / 120) * 100;
+    const autocallWidth = (100 / 120) * 100;
+    const barColor = parseFloat(niveauActuel) >= 100 ? '#10b981' : parseFloat(niveauActuel) >= 80 ? '#f59e0b' : '#ef4444';
+
     html += `<div style="background: var(--white); border: 1px solid var(--border-gray); border-radius: 12px; padding: 20px; margin-bottom: 16px;">
       <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
         <div>
           <div style="font-weight: 600; margin-bottom: 4px;">${prod.name}</div>
-          <div style="font-size: 12px; color: var(--text-light);">Émetteur: ${prod.emetteur} | Nominal: ${formatCurrency(prod.nominal)}</div>
+          <div style="font-size: 12px; color: var(--text-light);">Émetteur: ${prod.emetteur} | Nominal: ${formatCurrency(prod.nominal)} | Sous-jacent: ${prod.sousjacent || 'N/A'}</div>
         </div>
         <span class="badge ${badge}">${pvPercent >= 0 ? '+' : ''}${formatPercent(pvPercent)}</span>
       </div>
-      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; font-size: 12px;">
+      <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; font-size: 12px; margin-bottom: 14px;">
         <div><span style="color: var(--text-light);">Valeur</span><div style="font-weight: 600;">${formatCurrency(prod.valuation)}</div></div>
-        <div><span style="color: var(--text-light);">P&L</span><div style="font-weight: 600;">${prod.pv >= 0 ? '+' : ''}${formatCurrency(prod.pv)}</div></div>
+        <div><span style="color: var(--text-light);">P&L</span><div style="font-weight: 600; color: ${prod.pv >= 0 ? 'var(--success)' : 'var(--danger)'};">${prod.pv >= 0 ? '+' : ''}${formatCurrency(prod.pv)}</div></div>
         <div><span style="color: var(--text-light);">Coupon</span><div style="font-weight: 600;">${prod.coupon}</div></div>
-        <div><span style="color: var(--text-light);">Barrière</span><div style="font-weight: 600;">${prod.barriere}</div></div>
+        <div><span style="color: var(--text-light);">Barrière PDI</span><div style="font-weight: 600; color: var(--danger);">${prod.barriere}</div></div>
+        <div><span style="color: var(--text-light);">Niveau Actuel</span><div style="font-weight: 600; color: ${barColor};">${niveauActuel}%</div></div>
       </div>
+      <!-- Mini barre de niveau -->
+      <div style="position: relative; height: 28px; background: ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'}; border-radius: 14px; overflow: visible; margin-top: 4px;">
+        <div style="position: absolute; left: 0; top: 0; height: 100%; width: ${barWidth}%; background: linear-gradient(90deg, ${barColor}44, ${barColor}); border-radius: 14px; transition: width 0.5s;"></div>
+        <div style="position: absolute; left: ${protWidth}%; top: -2px; bottom: -2px; width: 2px; background: #ef4444; border-radius: 1px;" title="Barrière Protection ${protBarrier}%"></div>
+        <div style="position: absolute; left: ${autocallWidth}%; top: -2px; bottom: -2px; width: 2px; background: #3b82f6; border-radius: 1px;" title="Autocall 100%"></div>
+        <div style="position: absolute; left: ${barWidth}%; top: 50%; transform: translate(-50%, -50%); font-size: 10px; font-weight: 700; color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">${niveauActuel}%</div>
+        <div style="position: absolute; left: ${protWidth}%; bottom: -16px; transform: translateX(-50%); font-size: 9px; color: #ef4444; font-weight: 600;">PDI ${protBarrier}%</div>
+        <div style="position: absolute; left: ${autocallWidth}%; bottom: -16px; transform: translateX(-50%); font-size: 9px; color: #3b82f6; font-weight: 600;">Autocall</div>
+      </div>
+      <div style="height: 16px;"></div>
     </div>`;
   });
 
   document.getElementById('structuredProducts').innerHTML = html;
+
+  // === GRAPHIQUE 1: Niveaux vs Barrières (horizontal bar) ===
+  const prevBarChart = Chart.getChart('barriersChart');
+  if (prevBarChart) prevBarChart.destroy();
+
+  const shortNames = structured.map(p => {
+    const n = p.name;
+    if (n.length > 30) return n.substring(0, 28) + '…';
+    return n;
+  });
+
+  const currentLevels = structured.map(p => ((p.price / p.nominal) * 100));
+  const protectionBarriers = structured.map(p => parseFloat(p.barriere));
+  const autocallBarriers = structured.map(() => 100);
+
+  const barColors = currentLevels.map((lvl, i) => {
+    if (lvl >= 100) return 'rgba(16, 185, 129, 0.85)';
+    if (lvl >= 80) return 'rgba(245, 158, 11, 0.85)';
+    return 'rgba(239, 68, 68, 0.85)';
+  });
+
+  const gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
+  const textColor = isDark ? '#94a3b8' : '#64748b';
+
+  new Chart(document.getElementById('barriersChart'), {
+    type: 'bar',
+    data: {
+      labels: shortNames,
+      datasets: [
+        {
+          label: 'Niveau Actuel (%)',
+          data: currentLevels,
+          backgroundColor: barColors,
+          borderColor: barColors.map(c => c.replace('0.85', '1')),
+          borderWidth: 2,
+          borderRadius: 6,
+          barPercentage: 0.6
+        },
+        {
+          label: 'Barrière Autocall (100%)',
+          data: autocallBarriers,
+          type: 'line',
+          borderColor: '#3b82f6',
+          borderWidth: 2,
+          borderDash: [8, 4],
+          pointRadius: 0,
+          fill: false,
+          order: -1
+        },
+        {
+          label: 'Barrière Protection (60%)',
+          data: protectionBarriers,
+          type: 'line',
+          borderColor: '#ef4444',
+          borderWidth: 2,
+          borderDash: [4, 4],
+          pointRadius: 0,
+          fill: false,
+          order: -1
+        }
+      ]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top',
+          labels: { color: textColor, usePointStyle: true, pointStyle: 'rectRounded', padding: 16, font: { size: 11 } }
+        },
+        tooltip: {
+          backgroundColor: isDark ? '#1e293b' : '#0f172a',
+          titleFont: { size: 12 },
+          bodyFont: { size: 12 },
+          padding: 12,
+          cornerRadius: 8,
+          callbacks: {
+            label: function(ctx) {
+              if (ctx.dataset.type === 'line') return ctx.dataset.label;
+              const lvl = ctx.parsed.x.toFixed(1);
+              const barrier = protectionBarriers[ctx.dataIndex];
+              const margin = (ctx.parsed.x - barrier).toFixed(1);
+              return ['Niveau: ' + lvl + '%', 'Marge vs protection: ' + margin + 'pp'];
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          min: 40,
+          max: 120,
+          grid: { color: gridColor },
+          ticks: { color: textColor, callback: v => v + '%', font: { size: 11 } }
+        },
+        y: {
+          grid: { display: false },
+          ticks: { color: textColor, font: { size: 10 }, padding: 8 }
+        }
+      }
+    }
+  });
+
+// === GRAPHIQUE 2: Évolution simulée depuis l'émission ===
+  const prevEvoChart = Chart.getChart('evolutionChart');
+  if (prevEvoChart) prevEvoChart.destroy();
+
+  const lineColors = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#ec4899'];
+
+  function generateEvolutionData(product, colorIdx) {
+    const startDate = product.dateAchat ? new Date(product.dateAchat) : new Date('2025-02-01');
+    const endDate = product.dateValo ? new Date(product.dateValo) : new Date('2026-03-24');
+    const currentLevel = (product.price / product.nominal) * 100;
+    const months = Math.max(2, Math.round((endDate - startDate) / (30 * 24 * 60 * 60 * 1000)));
+
+    const points = [];
+    const seed = product.id.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+    let level = 100;
+    const drift = (currentLevel - 100) / months;
+
+    for (let m = 0; m <= months; m++) {
+      const d = new Date(startDate);
+      d.setMonth(d.getMonth() + m);
+      if (d > endDate) break;
+
+      // Deterministic pseudo-random walk
+      const noise = Math.sin(seed * (m + 1) * 0.7) * 4 + Math.cos(seed * m * 1.3) * 3;
+      level = 100 + drift * m + noise;
+      if (m === months) level = currentLevel; // ensure we end at actual level
+
+      points.push({
+        x: d.toISOString().slice(0, 7),
+        y: Math.round(level * 100) / 100
+      });
+    }
+    // Ensure last point is exact
+    points[points.length - 1].y = Math.round(currentLevel * 100) / 100;
+
+    return {
+      label: product.name.length > 25 ? product.name.substring(0, 23) + '…' : product.name,
+      data: points,
+      borderColor: lineColors[colorIdx % lineColors.length],
+      backgroundColor: lineColors[colorIdx % lineColors.length] + '15',
+      borderWidth: 2.5,
+      pointRadius: 3,
+      pointHoverRadius: 6,
+      pointBackgroundColor: lineColors[colorIdx % lineColors.length],
+      tension: 0.35,
+      fill: false
+    };
+  }
+
+  // Collect all unique months for x-axis
+  const allMonths = new Set();
+  structured.forEach(p => {
+    const start = p.dateAchat ? new Date(p.dateAchat) : new Date('2025-02-01');
+    const end = p.dateValo ? new Date(p.dateValo) : new Date('2026-03-24');
+    let d = new Date(start);
+    while (d <= end) {
+      allMonths.add(d.toISOString().slice(0, 7));
+      d.setMonth(d.getMonth() + 1);
+    }
+  });
+  const sortedMonths = [...allMonths].sort();
+
+  const evoDatasets = structured.map((p, i) => generateEvolutionData(p, i));
+
+  // Add barrier lines as datasets
+  evoDatasets.push({
+    label: 'Autocall (100%)',
+    data: sortedMonths.map(m => ({ x: m, y: 100 })),
+    borderColor: '#3b82f6',
+    borderWidth: 2,
+    borderDash: [10, 5],
+    pointRadius: 0,
+    pointHoverRadius: 0,
+    fill: false,
+    order: 10
+  });
+
+  evoDatasets.push({
+    label: 'Protection (60%)',
+    data: sortedMonths.map(m => ({ x: m, y: 60 })),
+    borderColor: '#ef4444',
+    borderWidth: 2,
+    borderDash: [6, 4],
+    pointRadius: 0,
+    pointHoverRadius: 0,
+    fill: {
+      target: { value: 0 },
+      above: 'rgba(239, 68, 68, 0.05)'
+    },
+    order: 10
+  });
+
+  new Chart(document.getElementById('evolutionChart'), {
+    type: 'line',
+    data: {
+      labels: sortedMonths,
+      datasets: evoDatasets
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top',
+          labels: {
+            color: textColor,
+            usePointStyle: true,
+            pointStyle: 'circle',
+            padding: 12,
+            font: { size: 10 },
+            filter: function(item) { return true; }
+          }
+        },
+        tooltip: {
+          backgroundColor: isDark ? '#1e293b' : '#0f172a',
+          titleFont: { size: 12 },
+          bodyFont: { size: 11 },
+          padding: 12,
+          cornerRadius: 8,
+          callbacks: {
+            label: function(ctx) {
+              return ctx.dataset.label + ': ' + ctx.parsed.y.toFixed(1) + '%';
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: gridColor },
+          ticks: { color: textColor, font: { size: 10 }, maxTicksLimit: 12 }
+        },
+        y: {
+          min: 50,
+          max: 115,
+          grid: { color: gridColor },
+          ticks: {
+            color: textColor,
+            callback: v => v + '%',
+            font: { size: 11 },
+            stepSize: 10
+          }
+        }
+      }
+    }
+  });
 }
 
 function renderCrypto() {
