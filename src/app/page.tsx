@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ArrowUpRight, Building2, LineChart, ShieldCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -56,9 +57,11 @@ export default function Home() {
       </div>
 
       <CardContent className="px-0">
-        <Button className="w-full" size="lg">
-          Commencer
-          <ArrowUpRight />
+        <Button asChild className="w-full" size="lg">
+          <Link href="/login">
+            Commencer
+            <ArrowUpRight />
+          </Link>
         </Button>
       </CardContent>
     </main>
