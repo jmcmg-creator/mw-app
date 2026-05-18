@@ -1,0 +1,347 @@
+// Investment Portfolio Tracker — database schema
+// Provider: Supabase (PostgreSQL). ORM: Prisma 7.
+//
+// Naming: Prisma fields stay camelCase (idiomatic TypeScript) and are
+// mapped to snake_case columns/tables via @map / @@map for clean SQL.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+// Connection URLs live in prisma.config.ts (Prisma 7 requirement).
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum AssetType {
+  ACTION
+  ETF
+  STRUCTURE
+  IMMO
+  SECURISE
+}
+
+enum TransactionType {
+  BUY
+  SELL
+  DIVIDEND
+  FEE
+}
+
+enum Currency {
+  EUR
+  USD
+  GBP
+  CHF
+  JPY
+  CAD
+  AUD
+}
+
+enum LoanRateType {
+  FIXE
+  VARIABLE
+}
+
+enum ReferenceRate {
+  EURIBOR_1M
+  EURIBOR_3M
+  EURIBOR_6M
+  EURIBOR_12M
+  ESTR
+  SOFR
+  LIVRET_A
+}
+
+enum DocumentType {
+  ACTE_VENTE
+  BAIL
+  RELEVE
+  CONTRAT_PRET
+  FISCAL
+  TERM_SHEET
+  AUTRE
+}
+
+enum ExtractionStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+// Outcome recorded after a structured-product observation (constatation).
+enum ObservationOutcome {
+  PENDING
+  AUTOCALLED
+  COUPON_PAID
+  COUPON_MISSED
+  CAPITAL_LOSS
+  MATURED_FULL_REPAYMENT
+}
+
+// ---------------------------------------------------------------------------
+// Auth
+// ---------------------------------------------------------------------------
+
+// Mirrors a Supabase Auth user (auth.users). `id` MUST equal auth.users.id.
+// 2FA is handled natively by Supabase Auth (auth.mfa_factors);
+// `twoFactorEnabled` is a denormalized flag for fast UI checks.
+model User {
+  id               String   @id @db.Uuid
+  email            String   @unique
+  fullName         String?  @map("full_name")
+  avatarUrl        String?  @map("avatar_url")
+  twoFactorEnabled Boolean  @default(false) @map("two_factor_enabled")
+  baseCurrency     Currency @default(EUR) @map("base_currency")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  portfolios Portfolio[]
+
+  @@map("users")
+}
+
+// ---------------------------------------------------------------------------
+// Portfolios & cash
+// ---------------------------------------------------------------------------
+
+model Portfolio {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  name         String
+  description  String?
+  baseCurrency Currency @default(EUR) @map("base_currency")
+  isDefault    Boolean  @default(false) @map("is_default")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assets       Asset[]
+  cashBalances CashBalance[]
+
+  @@index([userId])
+  @@map("portfolios")
+}
+
+// One row per (portfolio, currency) — supports multi-currency cash.
+model CashBalance {
+  id          String   @id @default(uuid()) @db.Uuid
+  portfolioId String   @map("portfolio_id") @db.Uuid
+  currency    Currency
+  amount      Decimal  @default(0) @db.Decimal(18, 4)
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  portfolio Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+
+  @@unique([portfolioId, currency])
+  @@map("cash_balances")
+}
+
+// ---------------------------------------------------------------------------
+// Assets
+// ---------------------------------------------------------------------------
+
+// Base model for every holding. Type-specific fields are nullable and only
+// populated for the relevant AssetType.
+model Asset {
+  id          String    @id @default(uuid()) @db.Uuid
+  portfolioId String    @map("portfolio_id") @db.Uuid
+  type        AssetType
+  name        String
+  currency    Currency  @default(EUR)
+  notes       String?
+
+  // --- Market assets (ACTION / ETF / STRUCTURE / SECURISE) ---
+  ticker String?
+  isin   String?
+
+  // Cached PRU (cost basis) — recomputed by calculateStockPerformance.ts.
+  cachedPru         Decimal?  @map("cached_pru") @db.Decimal(18, 6)
+  cachedQuantity    Decimal?  @map("cached_quantity") @db.Decimal(18, 6)
+  cachedMarketPrice Decimal?  @map("cached_market_price") @db.Decimal(18, 6)
+  pruUpdatedAt      DateTime? @map("pru_updated_at")
+
+  // --- Real estate (IMMO) ---
+  surface_sqm      Decimal? @map("surface_sqm") @db.Decimal(10, 2)
+  personal_equity  Decimal? @map("personal_equity") @db.Decimal(18, 2)
+  address          String?
+  purchasePrice    Decimal? @map("purchase_price") @db.Decimal(18, 2)
+  currentValuation Decimal? @map("current_valuation") @db.Decimal(18, 2)
+  monthlyRent      Decimal? @map("monthly_rent") @db.Decimal(18, 2)
+  monthlyCharges   Decimal? @map("monthly_charges") @db.Decimal(18, 2)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  portfolio         Portfolio                 @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  transactions      Transaction[]
+  structuredDetails StructuredProductDetails?
+  loans             Loan[]
+  documents         Document[]
+
+  @@index([portfolioId])
+  @@index([ticker])
+  @@map("assets")
+}
+
+// ---------------------------------------------------------------------------
+// Transactions
+// ---------------------------------------------------------------------------
+
+// Buys, sells, dividends and fees. Amounts are stored both in the native
+// transaction currency and converted to the portfolio base currency.
+model Transaction {
+  id        String          @id @default(uuid()) @db.Uuid
+  assetId   String          @map("asset_id") @db.Uuid
+  type      TransactionType
+  date      DateTime
+  quantity  Decimal?        @db.Decimal(18, 6)
+  unitPrice Decimal?        @map("unit_price") @db.Decimal(18, 6)
+  fees      Decimal         @default(0) @db.Decimal(18, 4)
+
+  // Native currency of the transaction.
+  currency Currency
+  // Gross amount in the native currency.
+  amount   Decimal  @db.Decimal(18, 4)
+
+  // FX conversion to the portfolio base currency.
+  exchangeRate         Decimal @default(1) @map("exchange_rate") @db.Decimal(18, 8)
+  amountInBaseCurrency Decimal @map("amount_in_base_currency") @db.Decimal(18, 4)
+
+  note      String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  asset Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([assetId])
+  @@index([date])
+  @@map("transactions")
+}
+
+// ---------------------------------------------------------------------------
+// Structured products
+// ---------------------------------------------------------------------------
+
+// 1:1 extension of an Asset of type STRUCTURE.
+// Barriers are stored as a fraction of the strike (e.g. 0.60 = 60%).
+model StructuredProductDetails {
+  id               String    @id @default(uuid()) @db.Uuid
+  assetId          String    @unique @map("asset_id") @db.Uuid
+  underlying_ticker String   @map("underlying_ticker")
+  strike_price     Decimal   @map("strike_price") @db.Decimal(18, 6)
+  capital_barrier  Decimal?  @map("capital_barrier") @db.Decimal(6, 4)
+  coupon_barrier   Decimal?  @map("coupon_barrier") @db.Decimal(6, 4)
+  autocall_barrier Decimal?  @map("autocall_barrier") @db.Decimal(6, 4)
+  coupon_rate      Decimal   @map("coupon_rate") @db.Decimal(8, 6)
+  issuer           String?
+  isin             String?
+  nominalAmount    Decimal?  @map("nominal_amount") @db.Decimal(18, 2)
+  issueDate        DateTime? @map("issue_date")
+  maturityDate     DateTime? @map("maturity_date")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  asset            Asset                     @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  observationDates ProductObservationDates[]
+
+  @@map("structured_product_details")
+}
+
+// Observation / constatation dates of a structured product.
+model ProductObservationDates {
+  id                  String             @id @default(uuid()) @db.Uuid
+  structuredProductId String             @map("structured_product_id") @db.Uuid
+  sequence            Int
+  observationDate     DateTime           @map("observation_date")
+  outcome             ObservationOutcome @default(PENDING)
+  // Underlying level observed on the constatation date.
+  underlyingLevel     Decimal?           @map("underlying_level") @db.Decimal(18, 6)
+  couponPaid          Decimal?           @map("coupon_paid") @db.Decimal(18, 4)
+  notes               String?
+
+  structuredProduct StructuredProductDetails @relation(fields: [structuredProductId], references: [id], onDelete: Cascade)
+
+  @@unique([structuredProductId, sequence])
+  @@index([observationDate])
+  @@map("product_observation_dates")
+}
+
+// ---------------------------------------------------------------------------
+// Real estate loans
+// ---------------------------------------------------------------------------
+
+// A mortgage attached to an IMMO asset.
+// FIXE  -> fixedRate is used.
+// VARIABLE -> effective rate = referenceRate quote + marginRate.
+model Loan {
+  id             String         @id @default(uuid()) @db.Uuid
+  assetId        String         @map("asset_id") @db.Uuid
+  lender         String?
+  rateType       LoanRateType   @map("rate_type")
+  fixedRate      Decimal?       @map("fixed_rate") @db.Decimal(8, 6)
+  reference_rate ReferenceRate? @map("reference_rate")
+  margin_rate    Decimal?       @map("margin_rate") @db.Decimal(8, 6)
+  insuranceRate  Decimal?       @map("insurance_rate") @db.Decimal(8, 6)
+  principal      Decimal        @db.Decimal(18, 2)
+  currency       Currency       @default(EUR)
+  durationMonths Int            @map("duration_months")
+  startDate      DateTime       @map("start_date")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+
+  asset    Asset                   @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  schedule Amortization_Schedule[]
+
+  @@index([assetId])
+  @@map("loans")
+}
+
+// Month-by-month amortization schedule of a Loan.
+model Amortization_Schedule {
+  id               String   @id @default(uuid()) @db.Uuid
+  loanId           String   @map("loan_id") @db.Uuid
+  period           Int
+  dueDate          DateTime @map("due_date")
+  payment          Decimal  @db.Decimal(18, 2)
+  principalPaid    Decimal  @map("principal_paid") @db.Decimal(18, 2)
+  interestPaid     Decimal  @map("interest_paid") @db.Decimal(18, 2)
+  insurancePaid    Decimal? @map("insurance_paid") @db.Decimal(18, 2)
+  remainingBalance Decimal  @map("remaining_balance") @db.Decimal(18, 2)
+
+  loan Loan @relation(fields: [loanId], references: [id], onDelete: Cascade)
+
+  @@unique([loanId, period])
+  @@map("amortization_schedules")
+}
+
+// ---------------------------------------------------------------------------
+// Document management (GED)
+// ---------------------------------------------------------------------------
+
+// A document attached to an Asset, stored in Supabase Storage.
+// `extractedData` holds structured data parsed by the Vercel AI SDK.
+model Document {
+  id               String           @id @default(uuid()) @db.Uuid
+  assetId          String           @map("asset_id") @db.Uuid
+  type             DocumentType     @default(AUTRE)
+  title            String
+  storageBucket    String           @default("documents") @map("storage_bucket")
+  storagePath      String           @map("storage_path")
+  mimeType         String?          @map("mime_type")
+  fileSize         Int?             @map("file_size")
+  extractedData    Json?            @map("extracted_data")
+  extractionStatus ExtractionStatus @default(PENDING) @map("extraction_status")
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
+
+  asset Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([assetId])
+  @@map("documents")
+}
