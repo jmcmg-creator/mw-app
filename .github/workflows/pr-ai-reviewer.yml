@@ -1,0 +1,37 @@
+name: PR AI Reviewer
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+# Cancel an in-flight review when the PR is updated again.
+concurrency:
+  group: pr-ai-reviewer-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  ai-review:
+    name: Claude review
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Claude Code review
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Review this pull request for the investment portfolio tracker.
+            Focus on:
+            - Security issues (auth, secrets, injection, data exposure).
+            - Correctness of financial calculations (PRU, barriers, ROE/ROI).
+            - Prisma usage and type safety.
+            - Next.js App Router and Server Action best practices.
+            Post concise, actionable review comments. Skip trivial nits.
