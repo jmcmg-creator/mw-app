@@ -1,36 +1,43 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Patrimoine — suivi de portefeuille d'investissements
 
-## Getting Started
+Application personnelle (SaaS) de suivi de patrimoine : bourse, produits
+structurés et immobilier, dans une interface épurée et mobile-first.
 
-First, run the development server:
+## Stack
+
+- **Next.js 16** (App Router, TypeScript) + **Tailwind CSS v4** + Shadcn UI
+- **Supabase** — PostgreSQL, Auth (2FA TOTP), Storage
+- **Prisma 7** — ORM (driver adapter `pg`)
+- **Recharts**, **yahoo-finance2**, **Vercel AI SDK** (à venir)
+
+## Démarrage
 
 ```bash
+npm install
+cp .env.example .env   # renseigner les valeurs Supabase
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Base de données
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Le schéma vit dans `prisma/schema.prisma`. La migration initiale
+(`prisma/migrations/`) et les scripts Supabase (`supabase/migrations/` —
+trigger de synchro auth, politiques RLS) doivent être appliqués sur le
+projet Supabase.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Structure
 
-## Learn More
+- `src/app/` — routes (auth + espace applicatif protégé)
+- `src/actions/` — Server Actions métier (PRU, produits structurés, immo)
+- `src/services/` — intégrations externes (Checkmyguest)
+- `src/lib/` — clients Prisma et Supabase
+- `src/components/ui/` — composants Shadcn
 
-To learn more about Next.js, take a look at the following resources:
+## Scripts
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Commande              | Rôle                     |
+| --------------------- | ------------------------ |
+| `npm run dev`         | Serveur de développement |
+| `npm run build`       | Build de production      |
+| `npm run lint`        | Lint ESLint              |
+| `npm run db:generate` | Génère le client Prisma  |
