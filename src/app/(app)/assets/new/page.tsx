@@ -127,25 +127,27 @@ export default function NewAssetPage() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="name">Nom</Label>
-              <Input
-                id="name"
-                required
+              <Label htmlFor="name">Nom — tapez pour rechercher</Label>
+              <SymbolSearch
                 value={name}
-                onChange={(event) => setName(event.target.value)}
-                placeholder="Ex. Air Liquide"
+                onValueChange={setName}
+                onSelect={(result) => {
+                  setName(result.name);
+                  setTicker(result.symbol);
+                  if (/etf|fund/i.test(result.type)) setType("ETF");
+                  else if (/equity|stock|action/i.test(result.type))
+                    setType("ACTION");
+                }}
               />
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="ticker">Valeur (recherche)</Label>
-              <SymbolSearch
+              <Label htmlFor="ticker">Ticker</Label>
+              <Input
+                id="ticker"
                 value={ticker}
-                onValueChange={setTicker}
-                onSelect={(result) => {
-                  setTicker(result.symbol);
-                  if (!name.trim()) setName(result.name);
-                }}
+                onChange={(event) => setTicker(event.target.value)}
+                placeholder="AAPL"
               />
             </div>
 
