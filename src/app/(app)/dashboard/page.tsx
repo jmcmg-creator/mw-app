@@ -19,6 +19,19 @@ import {
 } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  AllocationChart,
+  type AllocationSlice,
+} from "@/components/allocation-chart";
+
+const ALLOCATION_COLORS: Record<string, string> = {
+  ACTION: "#3b82f6",
+  ETF: "#10b981",
+  OBLIGATION: "#f59e0b",
+  STRUCTURE: "#8b5cf6",
+  IMMO: "#06b6d4",
+  SECURISE: "#64748b",
+};
 
 type Row = {
   id: string;
@@ -45,6 +58,7 @@ export default async function DashboardPage() {
   const marketRows: Row[] = [];
   const immoRows: Row[] = [];
   const totals = { value: 0, invested: 0 };
+  const byType: Record<string, number> = {};
 
   for (const asset of assets) {
     if (asset.type === "IMMO") {
@@ -59,6 +73,7 @@ export default async function DashboardPage() {
       });
       totals.value += value;
       totals.invested += toNumber(asset.purchasePrice);
+      byType.IMMO = (byType.IMMO ?? 0) + value;
     } else {
       const quantity = toNumber(asset.cachedQuantity);
       const invested = quantity * toNumber(asset.cachedPru);
@@ -76,12 +91,22 @@ export default async function DashboardPage() {
       });
       totals.value += value;
       totals.invested += invested;
+      byType[asset.type] = (byType[asset.type] ?? 0) + value;
     }
   }
 
   const pnl = totals.value - totals.invested;
   const pnlPct = totals.invested > 0 ? pnl / totals.invested : 0;
   const currency = portfolio.baseCurrency;
+
+  const allocation: AllocationSlice[] = Object.entries(byType)
+    .filter(([, value]) => value > 0)
+    .map(([type, value]) => ({
+      label: ASSET_TYPE_LABELS[type],
+      value,
+      color: ALLOCATION_COLORS[type] ?? "#64748b",
+    }))
+    .sort((a, b) => b.value - a.value);
 
   return (
     <div className="flex flex-col gap-6 pt-2">
@@ -112,6 +137,17 @@ export default async function DashboardPage() {
             </CardHeader>
           </Card>
         </Link>
+      )}
+
+      {allocation.length > 1 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Répartition</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <AllocationChart data={allocation} total={totals.value} />
+          </CardContent>
+        </Card>
       )}
 
       <Section
