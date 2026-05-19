@@ -229,6 +229,8 @@ export default async function AssetDetailPage({
           type: document.type,
         }))}
         defaultType="RELEVE"
+        extract="transactions"
+        currency={asset.currency}
       />
     </div>
   );
