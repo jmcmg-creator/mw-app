@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/auth";
 import { getDefaultPortfolio } from "@/lib/portfolio";
+import { calculateStockPerformance } from "@/actions/calculateStockPerformance";
 import type { AssetType, Currency } from "@/generated/prisma/enums";
 
 export type CreateAssetInput = {
@@ -12,6 +13,13 @@ export type CreateAssetInput = {
   isin?: string;
   currency: Currency;
   notes?: string;
+  /** Optional opening position — creates an initial BUY transaction. */
+  holding?: {
+    quantity: number;
+    unitPrice: number;
+    fees?: number;
+    date: string;
+  };
   /** Required when type is STRUCTURE. */
   structured?: {
     underlyingTicker: string;
@@ -25,7 +33,7 @@ export type CreateAssetInput = {
   };
 };
 
-/** Creates a market asset in the user's default portfolio. */
+/** Creates a market asset, optionally with an opening position. */
 export async function createAsset(input: CreateAssetInput): Promise<string> {
   const userId = await requireUserId();
   const portfolio = await getDefaultPortfolio(userId);
@@ -59,6 +67,26 @@ export async function createAsset(input: CreateAssetInput): Promise<string> {
           : null,
       },
     });
+  }
+
+  if (input.holding && input.holding.quantity > 0) {
+    const { quantity, unitPrice, fees, date } = input.holding;
+    const amount = quantity * unitPrice;
+    await prisma.transaction.create({
+      data: {
+        assetId: asset.id,
+        type: "BUY",
+        date: new Date(date),
+        quantity,
+        unitPrice,
+        fees: fees ?? 0,
+        currency: input.currency,
+        amount,
+        exchangeRate: 1,
+        amountInBaseCurrency: amount,
+      },
+    });
+    await calculateStockPerformance(asset.id);
   }
 
   return asset.id;

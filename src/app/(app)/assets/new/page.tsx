@@ -51,6 +51,12 @@ export default function NewAssetPage() {
   const [issuer, setIssuer] = useState("");
   const [maturityDate, setMaturityDate] = useState("");
 
+  const [quantity, setQuantity] = useState("");
+  const [unitPrice, setUnitPrice] = useState("");
+  const [purchaseDate, setPurchaseDate] = useState(
+    new Date().toISOString().slice(0, 10),
+  );
+
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -73,6 +79,14 @@ export default function NewAssetPage() {
         ticker: ticker || undefined,
         isin: isin || undefined,
         currency,
+        holding:
+          quantity && unitPrice
+            ? {
+                quantity: Number(quantity),
+                unitPrice: Number(unitPrice),
+                date: purchaseDate,
+              }
+            : undefined,
         structured: isStructured
           ? {
               underlyingTicker,
@@ -286,6 +300,48 @@ export default function NewAssetPage() {
                 </div>
               </div>
             )}
+
+            <div className="border-border flex flex-col gap-4 rounded-lg border border-dashed p-3">
+              <p className="text-sm font-medium">Position (optionnel)</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="quantity">Quantité détenue</Label>
+                  <Input
+                    id="quantity"
+                    type="number"
+                    step="any"
+                    value={quantity}
+                    onChange={(event) => setQuantity(event.target.value)}
+                    placeholder="10"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="unitPrice">Prix d&apos;achat unitaire</Label>
+                  <Input
+                    id="unitPrice"
+                    type="number"
+                    step="any"
+                    value={unitPrice}
+                    onChange={(event) => setUnitPrice(event.target.value)}
+                    placeholder="150"
+                  />
+                </div>
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="purchaseDate">Date d&apos;achat</Label>
+                <Input
+                  id="purchaseDate"
+                  type="date"
+                  value={purchaseDate}
+                  onChange={(event) => setPurchaseDate(event.target.value)}
+                />
+              </div>
+              <p className="text-muted-foreground text-xs">
+                Renseigne la quantité et le prix pour enregistrer ta position
+                tout de suite — PRU, valeur et plus-value seront calculés
+                automatiquement.
+              </p>
+            </div>
 
             {error && <p className="text-destructive text-sm">{error}</p>}
 
