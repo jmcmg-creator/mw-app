@@ -22,6 +22,7 @@ enum AssetType {
   ACTION
   ETF
   STRUCTURE
+  OBLIGATION
   IMMO
   SECURISE
 }
