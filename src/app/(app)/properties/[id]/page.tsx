@@ -16,6 +16,7 @@ import {
 } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DocumentsCard } from "@/components/documents-card";
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
@@ -36,7 +37,10 @@ export default async function PropertyDetailPage({
 
   const asset = await prisma.asset.findFirst({
     where: { id, portfolio: { userId }, type: "IMMO" },
-    include: { loans: true },
+    include: {
+      loans: true,
+      documents: { orderBy: { createdAt: "desc" } },
+    },
   });
   if (!asset) {
     notFound();
@@ -212,6 +216,16 @@ export default async function PropertyDetailPage({
           ))}
         </div>
       )}
+
+      <DocumentsCard
+        assetId={id}
+        documents={asset.documents.map((document) => ({
+          id: document.id,
+          title: document.title,
+          type: document.type,
+        }))}
+        defaultType="ACTE_VENTE"
+      />
     </div>
   );
 }

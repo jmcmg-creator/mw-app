@@ -49,6 +49,16 @@ export const TRANSACTION_TYPE_LABELS: Record<string, string> = {
   FEE: "Frais",
 };
 
+export const DOCUMENT_TYPE_LABELS: Record<string, string> = {
+  ACTE_VENTE: "Acte de vente",
+  BAIL: "Bail",
+  RELEVE: "Relevé",
+  CONTRAT_PRET: "Contrat de prêt",
+  FISCAL: "Document fiscal",
+  TERM_SHEET: "Term sheet",
+  AUTRE: "Autre",
+};
+
 export const PROPERTY_TYPE_LABELS: Record<string, string> = {
   APPARTEMENT_LCD: "Appartement LCD",
   APPARTEMENT_BAIL_MOBILITE: "Appartement Bail Mobilité",

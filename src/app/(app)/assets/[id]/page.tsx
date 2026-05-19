@@ -18,6 +18,7 @@ import {
 } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DocumentsCard } from "@/components/documents-card";
 import { UpdatePriceForm } from "./_components/update-price-form";
 import { StructuredEvaluation } from "./_components/structured-evaluation";
 
@@ -43,6 +44,7 @@ export default async function AssetDetailPage({
     include: {
       transactions: { orderBy: { date: "desc" } },
       structuredDetails: true,
+      documents: { orderBy: { createdAt: "desc" } },
     },
   });
   if (!asset) {
@@ -218,6 +220,16 @@ export default async function AssetDetailPage({
           ))}
         </div>
       )}
+
+      <DocumentsCard
+        assetId={id}
+        documents={asset.documents.map((document) => ({
+          id: document.id,
+          title: document.title,
+          type: document.type,
+        }))}
+        defaultType="RELEVE"
+      />
     </div>
   );
 }
