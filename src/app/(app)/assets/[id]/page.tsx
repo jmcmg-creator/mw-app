@@ -112,7 +112,11 @@ export default async function AssetDetailPage({
             />
           </div>
 
-          <UpdatePriceForm assetId={id} currentPrice={perf.marketPrice} />
+          <UpdatePriceForm
+            assetId={id}
+            currentPrice={perf.marketPrice}
+            ticker={asset.ticker}
+          />
         </CardContent>
       </Card>
 
@@ -151,7 +155,10 @@ export default async function AssetDetailPage({
                 />
               )}
             </div>
-            <StructuredEvaluation assetId={id} />
+            <StructuredEvaluation
+              assetId={id}
+              underlyingTicker={details.underlying_ticker}
+            />
           </CardContent>
         </Card>
       )}

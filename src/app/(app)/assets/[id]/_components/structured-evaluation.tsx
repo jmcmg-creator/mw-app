@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, RefreshCw } from "lucide-react";
 
 import {
   evaluateStructuredProduct,
   type StructuredProductEvaluation,
 } from "@/actions/evaluateStructuredProduct";
+import { fetchQuote } from "@/actions/fetchQuote";
 import { formatNumber, formatPercent } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,12 +26,20 @@ function barrierLabel(
   return "Franchie";
 }
 
-export function StructuredEvaluation({ assetId }: { assetId: string }) {
+export function StructuredEvaluation({
+  assetId,
+  underlyingTicker,
+}: {
+  assetId: string;
+  underlyingTicker: string;
+}) {
   const [price, setPrice] = useState("");
   const [result, setResult] = useState<StructuredProductEvaluation | null>(
     null,
   );
   const [loading, setLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -38,6 +47,18 @@ export function StructuredEvaluation({ assetId }: { assetId: string }) {
     const evaluation = await evaluateStructuredProduct(assetId, Number(price));
     setResult(evaluation);
     setLoading(false);
+  }
+
+  async function handleSync() {
+    setSyncing(true);
+    setMessage(null);
+    const quote = await fetchQuote(underlyingTicker);
+    if (quote) {
+      setPrice(String(quote.price));
+    } else {
+      setMessage("Cours du sous-jacent introuvable sur Yahoo Finance.");
+    }
+    setSyncing(false);
   }
 
   function renderBarrier(
@@ -88,6 +109,20 @@ export function StructuredEvaluation({ assetId }: { assetId: string }) {
           Évaluer
         </Button>
       </form>
+
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        className="self-start"
+        onClick={handleSync}
+        disabled={syncing}
+      >
+        {syncing ? <Loader2 className="animate-spin" /> : <RefreshCw />}
+        Cours via Yahoo ({underlyingTicker})
+      </Button>
+
+      {message && <p className="text-destructive text-xs">{message}</p>}
 
       {result && (
         <div className="flex flex-col gap-2">
