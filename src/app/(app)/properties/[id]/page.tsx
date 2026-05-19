@@ -5,6 +5,8 @@ import { ArrowLeft, Plus } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/auth";
 import { calculateImmoMetrics } from "@/actions/calculateImmoMetrics";
+import { deleteAsset, deleteLoan } from "@/actions/deleteEntities";
+import { DeleteButton } from "@/components/delete-button";
 import {
   formatCurrency,
   formatNumber,
@@ -50,7 +52,7 @@ export default async function PropertyDetailPage({
             <ArrowLeft />
           </Link>
         </Button>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h1 className="truncate text-xl font-semibold tracking-tight">
             {asset.name}
           </h1>
@@ -60,6 +62,11 @@ export default async function PropertyDetailPage({
             </p>
           )}
         </div>
+        <DeleteButton
+          onConfirm={deleteAsset.bind(null, id)}
+          confirmText="Supprimer ce bien et ses prêts ?"
+          redirectTo="/dashboard"
+        />
       </div>
 
       <Card>
@@ -186,9 +193,15 @@ export default async function PropertyDetailPage({
                   {loan.durationMonths} mois
                 </p>
               </div>
-              <span className="text-sm font-medium">
-                {formatCurrency(toNumber(loan.principal), currency)}
-              </span>
+              <div className="flex items-center gap-1">
+                <span className="text-sm font-medium">
+                  {formatCurrency(toNumber(loan.principal), currency)}
+                </span>
+                <DeleteButton
+                  onConfirm={deleteLoan.bind(null, loan.id)}
+                  confirmText="Supprimer ce prêt ?"
+                />
+              </div>
             </Card>
           ))}
         </div>

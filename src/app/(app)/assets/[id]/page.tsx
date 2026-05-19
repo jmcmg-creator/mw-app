@@ -5,6 +5,8 @@ import { ArrowLeft, Plus } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/auth";
 import { calculateStockPerformance } from "@/actions/calculateStockPerformance";
+import { deleteAsset, deleteTransaction } from "@/actions/deleteEntities";
+import { DeleteButton } from "@/components/delete-button";
 import {
   ASSET_TYPE_LABELS,
   TRANSACTION_TYPE_LABELS,
@@ -59,7 +61,7 @@ export default async function AssetDetailPage({
             <ArrowLeft />
           </Link>
         </Button>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h1 className="truncate text-xl font-semibold tracking-tight">
             {asset.name}
           </h1>
@@ -68,6 +70,11 @@ export default async function AssetDetailPage({
             {asset.ticker && ` · ${asset.ticker}`}
           </p>
         </div>
+        <DeleteButton
+          onConfirm={deleteAsset.bind(null, id)}
+          confirmText="Supprimer cet actif et toutes ses transactions ?"
+          redirectTo="/dashboard"
+        />
       </div>
 
       <Card>
@@ -198,9 +205,15 @@ export default async function AssetDetailPage({
                     ` · ${formatNumber(toNumber(tx.quantity), 6)} u.`}
                 </p>
               </div>
-              <span className="text-sm font-medium">
-                {formatCurrency(toNumber(tx.amount), tx.currency)}
-              </span>
+              <div className="flex items-center gap-1">
+                <span className="text-sm font-medium">
+                  {formatCurrency(toNumber(tx.amount), tx.currency)}
+                </span>
+                <DeleteButton
+                  onConfirm={deleteTransaction.bind(null, tx.id)}
+                  confirmText="Supprimer cette transaction ?"
+                />
+              </div>
             </Card>
           ))}
         </div>
