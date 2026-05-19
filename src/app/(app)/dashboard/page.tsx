@@ -1,5 +1,11 @@
 import Link from "next/link";
-import { ChevronRight, Plus, ShieldAlert } from "lucide-react";
+import {
+  Building2,
+  ChevronRight,
+  LineChart,
+  Plus,
+  ShieldAlert,
+} from "lucide-react";
 
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/auth";
@@ -12,12 +18,16 @@ import {
   toNumber,
 } from "@/lib/format";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+type Row = {
+  id: string;
+  name: string;
+  subtitle: string;
+  value: number;
+  currency: string;
+  href: string;
+};
 
 export default async function DashboardPage() {
   const userId = await requireUserId();
@@ -32,28 +42,55 @@ export default async function DashboardPage() {
   const has2fa =
     factors?.totp?.some((factor) => factor.status === "verified") ?? false;
 
-  const rows = assets.map((asset) => {
-    const quantity = toNumber(asset.cachedQuantity);
-    const invested = quantity * toNumber(asset.cachedPru);
-    const marketValue = quantity * toNumber(asset.cachedMarketPrice);
-    const value = marketValue > 0 ? marketValue : invested;
-    return { asset, quantity, invested, value };
-  });
+  const marketRows: Row[] = [];
+  const immoRows: Row[] = [];
+  const totals = { value: 0, invested: 0 };
 
-  const totalInvested = rows.reduce((sum, row) => sum + row.invested, 0);
-  const totalValue = rows.reduce((sum, row) => sum + row.value, 0);
-  const pnl = totalValue - totalInvested;
-  const pnlPct = totalInvested > 0 ? pnl / totalInvested : 0;
+  for (const asset of assets) {
+    if (asset.type === "IMMO") {
+      const value = toNumber(asset.currentValuation);
+      immoRows.push({
+        id: asset.id,
+        name: asset.name,
+        subtitle: asset.address ?? "Bien immobilier",
+        value,
+        currency: asset.currency,
+        href: `/properties/${asset.id}`,
+      });
+      totals.value += value;
+      totals.invested += toNumber(asset.purchasePrice);
+    } else {
+      const quantity = toNumber(asset.cachedQuantity);
+      const invested = quantity * toNumber(asset.cachedPru);
+      const marketValue = quantity * toNumber(asset.cachedMarketPrice);
+      const value = marketValue > 0 ? marketValue : invested;
+      marketRows.push({
+        id: asset.id,
+        name: asset.name,
+        subtitle:
+          ASSET_TYPE_LABELS[asset.type] +
+          (quantity > 0 ? ` · ${quantity} u.` : ""),
+        value,
+        currency: asset.currency,
+        href: `/assets/${asset.id}`,
+      });
+      totals.value += value;
+      totals.invested += invested;
+    }
+  }
+
+  const pnl = totals.value - totals.invested;
+  const pnlPct = totals.invested > 0 ? pnl / totals.invested : 0;
   const currency = portfolio.baseCurrency;
 
   return (
     <div className="flex flex-col gap-6 pt-2">
       <header className="flex flex-col gap-1">
-        <span className="text-muted-foreground text-sm">{portfolio.name}</span>
+        <span className="text-muted-foreground text-sm">Patrimoine total</span>
         <h1 className="text-3xl font-semibold tracking-tight">
-          {formatCurrency(totalValue, currency)}
+          {formatCurrency(totals.value, currency)}
         </h1>
-        {totalInvested > 0 && (
+        {totals.invested > 0 && (
           <span
             className={
               pnl >= 0 ? "text-success text-sm" : "text-destructive text-sm"
@@ -77,10 +114,47 @@ export default async function DashboardPage() {
         </Link>
       )}
 
+      <Section
+        title="Marchés"
+        icon={<LineChart className="size-4" />}
+        addHref="/assets/new"
+        rows={marketRows}
+        emptyLabel="Aucun actif boursier."
+      />
+
+      <Section
+        title="Immobilier"
+        icon={<Building2 className="size-4" />}
+        addHref="/properties/new"
+        rows={immoRows}
+        emptyLabel="Aucun bien immobilier."
+      />
+    </div>
+  );
+}
+
+function Section({
+  title,
+  icon,
+  addHref,
+  rows,
+  emptyLabel,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  addHref: string;
+  rows: Row[];
+  emptyLabel: string;
+}) {
+  return (
+    <section className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-medium">Mes actifs</h2>
+        <h2 className="flex items-center gap-1.5 text-sm font-medium">
+          {icon}
+          {title}
+        </h2>
         <Button size="sm" variant="outline" asChild>
-          <Link href="/assets/new">
+          <Link href={addHref}>
             <Plus />
             Ajouter
           </Link>
@@ -89,37 +163,30 @@ export default async function DashboardPage() {
 
       {rows.length === 0 ? (
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Aucun actif</CardTitle>
-            <CardDescription>
-              Ajoutez votre première action, ETF, obligation ou produit
-              structuré pour suivre sa performance.
-            </CardDescription>
-          </CardHeader>
+          <CardContent className="text-muted-foreground py-5 text-center text-sm">
+            {emptyLabel}
+          </CardContent>
         </Card>
       ) : (
-        <div className="flex flex-col gap-2">
-          {rows.map(({ asset, quantity, value }) => (
-            <Link key={asset.id} href={`/assets/${asset.id}`}>
-              <Card className="flex-row items-center justify-between gap-3 px-4 py-3">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">{asset.name}</p>
-                  <p className="text-muted-foreground text-xs">
-                    {ASSET_TYPE_LABELS[asset.type]}
-                    {quantity > 0 && ` · ${quantity} u.`}
-                  </p>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-sm font-medium">
-                    {formatCurrency(value, asset.currency)}
-                  </span>
-                  <ChevronRight className="text-muted-foreground size-4" />
-                </div>
-              </Card>
-            </Link>
-          ))}
-        </div>
+        rows.map((row) => (
+          <Link key={row.id} href={row.href}>
+            <Card className="flex-row items-center justify-between gap-3 px-4 py-3">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium">{row.name}</p>
+                <p className="text-muted-foreground truncate text-xs">
+                  {row.subtitle}
+                </p>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-sm font-medium">
+                  {formatCurrency(row.value, row.currency)}
+                </span>
+                <ChevronRight className="text-muted-foreground size-4" />
+              </div>
+            </Card>
+          </Link>
+        ))
       )}
-    </div>
+    </section>
   );
 }
