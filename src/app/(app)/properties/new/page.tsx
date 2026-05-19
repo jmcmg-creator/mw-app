@@ -6,10 +6,17 @@ import Link from "next/link";
 import { ArrowLeft, Loader2 } from "lucide-react";
 
 import { createImmoAsset } from "@/actions/createImmoAsset";
+import type { PropertyType } from "@/generated/prisma/enums";
+import { PROPERTY_TYPE_LABELS } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+
+const FIELD_CLASS =
+  "border-input flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-base shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] md:text-sm";
+
+const PROPERTY_TYPES = Object.keys(PROPERTY_TYPE_LABELS) as PropertyType[];
 
 function optionalNumber(value: string): number | undefined {
   const parsed = Number(value);
@@ -19,6 +26,8 @@ function optionalNumber(value: string): number | undefined {
 export default function NewPropertyPage() {
   const router = useRouter();
   const [name, setName] = useState("");
+  const [propertyType, setPropertyType] =
+    useState<PropertyType>("APPARTEMENT_LCD");
   const [address, setAddress] = useState("");
   const [surfaceSqm, setSurfaceSqm] = useState("");
   const [personalEquity, setPersonalEquity] = useState("");
@@ -37,6 +46,7 @@ export default function NewPropertyPage() {
     try {
       const id = await createImmoAsset({
         name,
+        propertyType,
         address: address || undefined,
         surfaceSqm: optionalNumber(surfaceSqm),
         personalEquity: optionalNumber(personalEquity),
@@ -81,6 +91,24 @@ export default function NewPropertyPage() {
                 onChange={(event) => setName(event.target.value)}
                 placeholder="Ex. Studio Charonne"
               />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="propertyType">Type de bien</Label>
+              <select
+                id="propertyType"
+                className={FIELD_CLASS}
+                value={propertyType}
+                onChange={(event) =>
+                  setPropertyType(event.target.value as PropertyType)
+                }
+              >
+                {PROPERTY_TYPES.map((type) => (
+                  <option key={type} value={type}>
+                    {PROPERTY_TYPE_LABELS[type]}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="flex flex-col gap-2">

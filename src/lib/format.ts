@@ -48,3 +48,12 @@ export const TRANSACTION_TYPE_LABELS: Record<string, string> = {
   DIVIDEND: "Dividende",
   FEE: "Frais",
 };
+
+export const PROPERTY_TYPE_LABELS: Record<string, string> = {
+  APPARTEMENT_LCD: "Appartement LCD",
+  APPARTEMENT_BAIL_MOBILITE: "Appartement Bail Mobilité",
+  BUREAUX: "Bureaux",
+  LOCAL_COMMERCIAL: "Local commercial",
+  HOTEL: "Hôtel",
+  MAISON: "Maison",
+};

@@ -34,6 +34,15 @@ enum TransactionType {
   FEE
 }
 
+enum PropertyType {
+  APPARTEMENT_LCD
+  APPARTEMENT_BAIL_MOBILITE
+  BUREAUX
+  LOCAL_COMMERCIAL
+  HOTEL
+  MAISON
+}
+
 enum Currency {
   EUR
   USD
@@ -169,8 +178,9 @@ model Asset {
   pruUpdatedAt      DateTime? @map("pru_updated_at")
 
   // --- Real estate (IMMO) ---
-  surface_sqm      Decimal? @map("surface_sqm") @db.Decimal(10, 2)
-  personal_equity  Decimal? @map("personal_equity") @db.Decimal(18, 2)
+  propertyType     PropertyType? @map("property_type")
+  surface_sqm      Decimal?      @map("surface_sqm") @db.Decimal(10, 2)
+  personal_equity  Decimal?      @map("personal_equity") @db.Decimal(18, 2)
   address          String?
   purchasePrice    Decimal? @map("purchase_price") @db.Decimal(18, 2)
   currentValuation Decimal? @map("current_valuation") @db.Decimal(18, 2)

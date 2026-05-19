@@ -8,6 +8,7 @@ import { calculateImmoMetrics } from "@/actions/calculateImmoMetrics";
 import { deleteAsset, deleteLoan } from "@/actions/deleteEntities";
 import { DeleteButton } from "@/components/delete-button";
 import {
+  PROPERTY_TYPE_LABELS,
   formatCurrency,
   formatNumber,
   formatPercent,
@@ -56,11 +57,16 @@ export default async function PropertyDetailPage({
           <h1 className="truncate text-xl font-semibold tracking-tight">
             {asset.name}
           </h1>
-          {asset.address && (
-            <p className="text-muted-foreground truncate text-xs">
-              {asset.address}
-            </p>
-          )}
+          <p className="text-muted-foreground truncate text-xs">
+            {[
+              asset.propertyType
+                ? PROPERTY_TYPE_LABELS[asset.propertyType]
+                : null,
+              asset.address,
+            ]
+              .filter(Boolean)
+              .join(" · ") || "Bien immobilier"}
+          </p>
         </div>
         <DeleteButton
           onConfirm={deleteAsset.bind(null, id)}

@@ -15,6 +15,7 @@ import { createClient } from "@/lib/supabase/server";
 import { deleteCashBalance } from "@/actions/setCashBalance";
 import {
   ASSET_TYPE_LABELS,
+  PROPERTY_TYPE_LABELS,
   formatCurrency,
   formatPercent,
   toNumber,
@@ -73,7 +74,9 @@ export default async function DashboardPage() {
       immoRows.push({
         id: asset.id,
         name: asset.name,
-        subtitle: asset.address ?? "Bien immobilier",
+        subtitle: asset.propertyType
+          ? PROPERTY_TYPE_LABELS[asset.propertyType]
+          : (asset.address ?? "Bien immobilier"),
         value,
         currency: asset.currency,
         href: `/properties/${asset.id}`,

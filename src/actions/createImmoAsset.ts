@@ -3,9 +3,11 @@
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/auth";
 import { getDefaultPortfolio } from "@/lib/portfolio";
+import type { PropertyType } from "@/generated/prisma/enums";
 
 export type CreateImmoAssetInput = {
   name: string;
+  propertyType?: PropertyType;
   address?: string;
   surfaceSqm?: number;
   personalEquity?: number;
@@ -28,6 +30,7 @@ export async function createImmoAsset(
       type: "IMMO",
       name: input.name.trim(),
       currency: portfolio.baseCurrency,
+      propertyType: input.propertyType ?? null,
       address: input.address?.trim() || null,
       surface_sqm: input.surfaceSqm ?? null,
       personal_equity: input.personalEquity ?? null,
