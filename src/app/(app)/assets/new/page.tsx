@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ArrowLeft, Loader2 } from "lucide-react";
 
 import { createAsset } from "@/actions/createAsset";
+import { lookupIsin } from "@/actions/lookupIsin";
 import type { AssetType, Currency } from "@/generated/prisma/enums";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -131,12 +132,14 @@ export default function NewAssetPage() {
               <SymbolSearch
                 value={name}
                 onValueChange={setName}
-                onSelect={(result) => {
+                onSelect={async (result) => {
                   setName(result.name);
                   setTicker(result.symbol);
                   if (/etf|fund/i.test(result.type)) setType("ETF");
                   else if (/equity|stock|action/i.test(result.type))
                     setType("ACTION");
+                  const found = await lookupIsin(result.name, result.symbol);
+                  if (found) setIsin(found);
                 }}
               />
             </div>
