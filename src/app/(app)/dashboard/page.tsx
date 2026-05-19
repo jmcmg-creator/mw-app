@@ -5,12 +5,14 @@ import {
   LineChart,
   Plus,
   ShieldAlert,
+  Wallet,
 } from "lucide-react";
 
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/auth";
 import { getDefaultPortfolio } from "@/lib/portfolio";
 import { createClient } from "@/lib/supabase/server";
+import { deleteCashBalance } from "@/actions/setCashBalance";
 import {
   ASSET_TYPE_LABELS,
   formatCurrency,
@@ -19,6 +21,7 @@ import {
 } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DeleteButton } from "@/components/delete-button";
 import {
   AllocationChart,
   type AllocationSlice,
@@ -48,6 +51,10 @@ export default async function DashboardPage() {
   const assets = await prisma.asset.findMany({
     where: { portfolioId: portfolio.id },
     orderBy: { createdAt: "desc" },
+  });
+  const cashBalances = await prisma.cashBalance.findMany({
+    where: { portfolioId: portfolio.id },
+    orderBy: { currency: "asc" },
   });
 
   const supabase = await createClient();
@@ -95,6 +102,14 @@ export default async function DashboardPage() {
     }
   }
 
+  const totalCash = cashBalances.reduce(
+    (sum, balance) => sum + toNumber(balance.amount),
+    0,
+  );
+  // Cash is value-neutral for P&L: count it in both sides.
+  totals.value += totalCash;
+  totals.invested += totalCash;
+
   const pnl = totals.value - totals.invested;
   const pnlPct = totals.invested > 0 ? pnl / totals.invested : 0;
   const currency = portfolio.baseCurrency;
@@ -105,8 +120,15 @@ export default async function DashboardPage() {
       label: ASSET_TYPE_LABELS[type],
       value,
       color: ALLOCATION_COLORS[type] ?? "#64748b",
-    }))
-    .sort((a, b) => b.value - a.value);
+    }));
+  if (totalCash > 0) {
+    allocation.push({
+      label: "Liquidités",
+      value: totalCash,
+      color: "#84cc16",
+    });
+  }
+  allocation.sort((a, b) => b.value - a.value);
 
   return (
     <div className="flex flex-col gap-6 pt-2">
@@ -165,6 +187,47 @@ export default async function DashboardPage() {
         rows={immoRows}
         emptyLabel="Aucun bien immobilier."
       />
+
+      <section className="flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <h2 className="flex items-center gap-1.5 text-sm font-medium">
+            <Wallet className="size-4" />
+            Liquidités
+          </h2>
+          <Button size="sm" variant="outline" asChild>
+            <Link href="/cash/new">
+              <Plus />
+              Ajouter
+            </Link>
+          </Button>
+        </div>
+
+        {cashBalances.length === 0 ? (
+          <Card>
+            <CardContent className="text-muted-foreground py-5 text-center text-sm">
+              Aucune liquidité.
+            </CardContent>
+          </Card>
+        ) : (
+          cashBalances.map((balance) => (
+            <Card
+              key={balance.id}
+              className="flex-row items-center justify-between gap-3 px-4 py-3"
+            >
+              <span className="text-sm font-medium">{balance.currency}</span>
+              <div className="flex items-center gap-1">
+                <span className="text-sm font-medium">
+                  {formatCurrency(toNumber(balance.amount), balance.currency)}
+                </span>
+                <DeleteButton
+                  onConfirm={deleteCashBalance.bind(null, balance.id)}
+                  confirmText="Supprimer cette liquidité ?"
+                />
+              </div>
+            </Card>
+          ))
+        )}
+      </section>
     </div>
   );
 }

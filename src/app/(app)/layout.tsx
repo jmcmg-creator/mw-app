@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Settings, Wallet } from "lucide-react";
+import { Wallet } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
-import { Button } from "@/components/ui/button";
 import { SignOutButton } from "@/components/sign-out-button";
+import { BottomNav } from "@/components/bottom-nav";
 
 export default async function AppLayout({
   children,
@@ -34,16 +34,12 @@ export default async function AppLayout({
           </div>
           <span className="font-semibold tracking-tight">Patrimoine</span>
         </Link>
-        <div className="flex items-center">
-          <Button variant="ghost" size="icon" asChild aria-label="Réglages">
-            <Link href="/settings">
-              <Settings />
-            </Link>
-          </Button>
-          <SignOutButton />
-        </div>
+        <SignOutButton />
       </header>
-      <main className="flex flex-1 flex-col px-5 pb-10">{children}</main>
+
+      <main className="flex flex-1 flex-col px-5 pb-8">{children}</main>
+
+      <BottomNav />
     </div>
   );
 }
