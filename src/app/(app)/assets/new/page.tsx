@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SymbolSearch } from "@/components/symbol-search";
 
 const FIELD_CLASS =
   "border-input flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-base shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] md:text-sm";
@@ -136,16 +137,19 @@ export default function NewAssetPage() {
               />
             </div>
 
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="ticker">Valeur (recherche)</Label>
+              <SymbolSearch
+                value={ticker}
+                onValueChange={setTicker}
+                onSelect={(result) => {
+                  setTicker(result.symbol);
+                  if (!name.trim()) setName(result.name);
+                }}
+              />
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="ticker">Ticker</Label>
-                <Input
-                  id="ticker"
-                  value={ticker}
-                  onChange={(event) => setTicker(event.target.value)}
-                  placeholder="AI.PA"
-                />
-              </div>
               <div className="flex flex-col gap-2">
                 <Label htmlFor="currency">Devise</Label>
                 <select
@@ -163,16 +167,15 @@ export default function NewAssetPage() {
                   ))}
                 </select>
               </div>
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="isin">ISIN</Label>
-              <Input
-                id="isin"
-                value={isin}
-                onChange={(event) => setIsin(event.target.value)}
-                placeholder="FR0000120073"
-              />
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="isin">ISIN</Label>
+                <Input
+                  id="isin"
+                  value={isin}
+                  onChange={(event) => setIsin(event.target.value)}
+                  placeholder="FR0000120073"
+                />
+              </div>
             </div>
 
             {isStructured && (
