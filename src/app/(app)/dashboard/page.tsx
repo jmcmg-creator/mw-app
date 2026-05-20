@@ -30,6 +30,11 @@ import {
   AllocationChart,
   type AllocationSlice,
 } from "@/components/allocation-chart";
+import { Sparkline } from "@/components/sparkline";
+import {
+  fetchHistorical,
+  type HistoricalPoint,
+} from "@/actions/fetchHistorical";
 
 const ALLOCATION_COLORS: Record<string, string> = {
   ACTION: "#3b82f6",
@@ -47,6 +52,8 @@ type Row = {
   value: number;
   currency: string;
   href: string;
+  spark?: HistoricalPoint[];
+  positive?: boolean;
 };
 
 export default async function DashboardPage() {
@@ -70,6 +77,17 @@ export default async function DashboardPage() {
   const immoRows: Row[] = [];
   const totals = { value: 0, invested: 0 };
   const byType: Record<string, number> = {};
+
+  // 1y sparkline per tickered market asset, fetched in parallel.
+  const sparklines = new Map<string, HistoricalPoint[]>(
+    await Promise.all(
+      assets
+        .filter((a) => a.type !== "IMMO" && a.ticker)
+        .map(
+          async (a) => [a.id, await fetchHistorical(a.ticker!, "1y")] as const,
+        ),
+    ),
+  );
 
   for (const asset of assets) {
     if (asset.type === "IMMO") {
@@ -101,6 +119,8 @@ export default async function DashboardPage() {
         value,
         currency: asset.currency,
         href: `/assets/${asset.id}`,
+        spark: sparklines.get(asset.id),
+        positive: marketValue - invested >= 0,
       });
       totals.value += value;
       totals.invested += invested;
@@ -291,13 +311,16 @@ function Section({
       ) : (
         rows.map((row) => (
           <Link key={row.id} href={row.href}>
-            <Card className="flex-row items-center justify-between gap-3 px-4 py-3">
-              <div className="min-w-0">
+            <Card className="flex-row items-center gap-3 px-4 py-3">
+              <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium">{row.name}</p>
                 <p className="text-muted-foreground truncate text-xs">
                   {row.subtitle}
                 </p>
               </div>
+              {row.spark && row.spark.length >= 2 && (
+                <Sparkline data={row.spark} positive={row.positive} />
+              )}
               <div className="flex items-center gap-1">
                 <span className="text-sm font-medium">
                   {formatCurrency(row.value, row.currency)}

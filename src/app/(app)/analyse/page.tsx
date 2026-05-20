@@ -16,6 +16,16 @@ import {
   computePortfolioMetrics,
   type RawAsset,
 } from "@/lib/analytics";
+import { buildPortfolioHistory } from "@/lib/portfolio-history";
+import {
+  fetchFundamentals,
+  type Fundamentals,
+} from "@/actions/fetchFundamentals";
+import {
+  fetchHistorical,
+  type HistoricalPoint,
+  type HistoricalRange,
+} from "@/actions/fetchHistorical";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -32,6 +42,11 @@ import {
   HoldingsTreemap,
   type TreemapCell,
 } from "@/components/holdings-treemap";
+import { Sparkline } from "@/components/sparkline";
+import {
+  PortfolioHistoryChart,
+  type PortfolioHistorySeries,
+} from "@/components/portfolio-history-chart";
 import { AutoRefresh } from "@/components/auto-refresh";
 
 const ALLOCATION_COLORS: Record<string, string> = {
@@ -51,6 +66,21 @@ const CURRENCY_COLORS = [
   "#06b6d4",
   "#ef4444",
   "#84cc16",
+];
+
+const SECTOR_COLORS = [
+  "#3b82f6",
+  "#10b981",
+  "#f59e0b",
+  "#8b5cf6",
+  "#06b6d4",
+  "#ef4444",
+  "#84cc16",
+  "#ec4899",
+  "#14b8a6",
+  "#a855f7",
+  "#f97316",
+  "#64748b",
 ];
 
 function Kpi({
@@ -83,6 +113,27 @@ function Kpi({
   );
 }
 
+function formatBigNumber(value: number | null, currency?: string): string {
+  if (value == null || !Number.isFinite(value)) return "—";
+  const abs = Math.abs(value);
+  const sign = value < 0 ? "-" : "";
+  const fmt = (n: number, suffix: string) =>
+    `${sign}${n.toFixed(n >= 100 ? 0 : n >= 10 ? 1 : 2)}${suffix}`;
+  let body: string;
+  if (abs >= 1e12)
+    body = fmt(abs / 1e12, " B"); // billion (FR) = 10^12
+  else if (abs >= 1e9) body = fmt(abs / 1e9, " Mds");
+  else if (abs >= 1e6) body = fmt(abs / 1e6, " M");
+  else if (abs >= 1e3) body = fmt(abs / 1e3, " k");
+  else body = `${sign}${abs.toFixed(0)}`;
+  return currency ? `${body} ${currency}` : body;
+}
+
+function formatRatio(value: number | null, digits = 2): string {
+  if (value == null || !Number.isFinite(value)) return "—";
+  return value.toFixed(digits);
+}
+
 export default async function AnalysePage() {
   const userId = await requireUserId();
   const portfolio = await getDefaultPortfolio(userId);
@@ -101,6 +152,94 @@ export default async function AnalysePage() {
 
   const holdings = rawAssets.map((asset) => buildHolding(asset as RawAsset));
   const metrics = computePortfolioMetrics(holdings);
+
+  // Tickerable assets (those we can ask Yahoo about). Skip fully-sold positions.
+  const tickered = rawAssets.filter(
+    (a) => a.ticker && toNumber(a.cachedQuantity) > 0,
+  );
+
+  // Fundamentals + historical for each tickered asset, all in parallel.
+  type Enriched = {
+    assetId: string;
+    ticker: string;
+    fundamentals: Fundamentals | null;
+    history1y: HistoricalPoint[];
+    history3y: HistoricalPoint[];
+    history5y: HistoricalPoint[];
+  };
+
+  const enriched: Enriched[] = await Promise.all(
+    tickered.map(async (a) => {
+      const ticker = a.ticker!;
+      const [fundamentals, h1, h3, h5] = await Promise.all([
+        fetchFundamentals(ticker),
+        fetchHistorical(ticker, "1y"),
+        fetchHistorical(ticker, "3y"),
+        fetchHistorical(ticker, "5y"),
+      ]);
+      return {
+        assetId: a.id,
+        ticker,
+        fundamentals,
+        history1y: h1,
+        history3y: h3,
+        history5y: h5,
+      };
+    }),
+  );
+
+  const enrichedById = new Map(enriched.map((e) => [e.assetId, e]));
+
+  // Sector allocation (weighted by current market value).
+  const bySector: Record<string, number> = {};
+  let sectorClassified = 0;
+  for (const h of holdings) {
+    const value = h.marketValue > 0 ? h.marketValue : h.invested;
+    if (value <= 0) continue;
+    const e = enrichedById.get(h.id);
+    const sector = e?.fundamentals?.sector ?? null;
+    if (sector) {
+      bySector[sector] = (bySector[sector] ?? 0) + value;
+      sectorClassified += value;
+    }
+  }
+  const sectorSlices: AllocationSlice[] = Object.entries(bySector)
+    .sort((a, b) => b[1] - a[1])
+    .map(([label, value], i) => ({
+      label,
+      value,
+      color: SECTOR_COLORS[i % SECTOR_COLORS.length],
+    }));
+
+  // Portfolio history (1Y / 3Y / 5Y) reconstructed from transactions × prices.
+  const historyAssets = (range: HistoricalRange) =>
+    tickered.map((a) => {
+      const e = enrichedById.get(a.id)!;
+      const series =
+        range === "1y"
+          ? e.history1y
+          : range === "3y"
+            ? e.history3y
+            : e.history5y;
+      return {
+        id: a.id,
+        ticker: a.ticker,
+        currency: a.currency,
+        transactions: a.transactions.map((tx) => ({
+          type: tx.type,
+          date: tx.date,
+          quantity: tx.quantity,
+          exchangeRate: tx.exchangeRate,
+        })),
+        history: series,
+      };
+    });
+
+  const portfolioHistory: PortfolioHistorySeries = {
+    "1y": buildPortfolioHistory(historyAssets("1y"), baseCurrency),
+    "3y": buildPortfolioHistory(historyAssets("3y"), baseCurrency),
+    "5y": buildPortfolioHistory(historyAssets("5y"), baseCurrency),
+  };
 
   const allocation: AllocationSlice[] = Object.entries(metrics.byType)
     .filter(([, value]) => value > 0)
@@ -130,6 +269,21 @@ export default async function AnalysePage() {
 
   const structured = rawAssets.filter(
     (a) => a.type === "STRUCTURE" && a.structuredDetails,
+  );
+
+  // Holdings sorted by current value, for the fundamentals table.
+  const holdingsByValue = [...holdings].sort(
+    (a, b) =>
+      (b.marketValue > 0 ? b.marketValue : b.invested) -
+      (a.marketValue > 0 ? a.marketValue : a.invested),
+  );
+
+  const hasAnyFundamentals = enriched.some(
+    (e) =>
+      e.fundamentals &&
+      (e.fundamentals.sector ||
+        e.fundamentals.trailingPE != null ||
+        e.fundamentals.marketCap != null),
   );
 
   return (
@@ -167,6 +321,24 @@ export default async function AnalysePage() {
         />
       </div>
 
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">
+            Historique du portefeuille
+          </CardTitle>
+          <CardDescription>
+            Valeur reconstruite à partir des transactions et des cours
+            historiques.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <PortfolioHistoryChart
+            series={portfolioHistory}
+            currency={baseCurrency}
+          />
+        </CardContent>
+      </Card>
+
       {allocation.length > 0 && (
         <Card>
           <CardHeader>
@@ -174,6 +346,26 @@ export default async function AnalysePage() {
           </CardHeader>
           <CardContent>
             <AllocationChart data={allocation} total={metrics.totalValue} />
+          </CardContent>
+        </Card>
+      )}
+
+      {sectorSlices.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Exposition sectorielle</CardTitle>
+            <CardDescription>
+              Sur{" "}
+              {formatPercent(
+                metrics.totalValue > 0
+                  ? sectorClassified / metrics.totalValue
+                  : 0,
+              )}{" "}
+              du portefeuille (positions tickerées uniquement).
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AllocationChart data={sectorSlices} total={sectorClassified} />
           </CardContent>
         </Card>
       )}
@@ -299,6 +491,102 @@ export default async function AnalysePage() {
         </CardContent>
       </Card>
 
+      {hasAnyFundamentals && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Fondamentaux</CardTitle>
+            <CardDescription>
+              PER · ratio dette/fonds propres · cash flow · capitalisation ·
+              YTD. Source : Yahoo Finance.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="-mx-4 overflow-x-auto">
+              <table className="w-full min-w-[640px] text-xs">
+                <thead className="text-muted-foreground">
+                  <tr className="border-border border-b">
+                    <th className="py-2 pr-2 pl-4 text-left font-medium">
+                      Position
+                    </th>
+                    <th className="px-2 py-2 text-left font-medium">Secteur</th>
+                    <th className="px-2 py-2 text-right font-medium">
+                      Market cap
+                    </th>
+                    <th className="px-2 py-2 text-right font-medium">PER</th>
+                    <th className="px-2 py-2 text-right font-medium">D/E</th>
+                    <th className="px-2 py-2 text-right font-medium">
+                      Cash flow op.
+                    </th>
+                    <th className="px-2 py-2 text-right font-medium">YTD</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {holdingsByValue.map((h) => {
+                    const e = enrichedById.get(h.id);
+                    const f = e?.fundamentals;
+                    const fcur = f?.currency ?? h.currency;
+                    return (
+                      <tr
+                        key={h.id}
+                        className="border-border/60 border-b last:border-b-0"
+                      >
+                        <td className="py-2 pr-2 pl-4">
+                          <Link
+                            href={`/assets/${h.id}`}
+                            className="font-medium hover:underline"
+                          >
+                            {h.name}
+                          </Link>
+                          {h.ticker && (
+                            <span className="text-muted-foreground ml-1">
+                              {h.ticker}
+                            </span>
+                          )}
+                        </td>
+                        <td className="text-muted-foreground px-2 py-2">
+                          {f?.sector ?? "—"}
+                        </td>
+                        <td className="px-2 py-2 text-right">
+                          {formatBigNumber(f?.marketCap ?? null, fcur)}
+                        </td>
+                        <td className="px-2 py-2 text-right">
+                          {formatRatio(f?.trailingPE ?? null, 1)}
+                        </td>
+                        <td className="px-2 py-2 text-right">
+                          {f?.debtToEquity != null
+                            ? formatRatio(f.debtToEquity / 100, 2)
+                            : "—"}
+                        </td>
+                        <td className="px-2 py-2 text-right">
+                          {formatBigNumber(f?.operatingCashflow ?? null, fcur)}
+                        </td>
+                        <td
+                          className={
+                            f?.ytdReturn == null
+                              ? "text-muted-foreground px-2 py-2 text-right"
+                              : f.ytdReturn >= 0
+                                ? "text-success px-2 py-2 text-right font-medium"
+                                : "text-destructive px-2 py-2 text-right font-medium"
+                          }
+                        >
+                          {f?.ytdReturn != null
+                            ? formatPercent(f.ytdReturn)
+                            : "—"}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <p className="text-muted-foreground mt-3 px-1 text-[11px]">
+              D/E exprimé en multiple (Yahoo le publie en %). Cash flow et
+              capitalisation dans la devise de reporting de la société.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       {structured.length > 0 && (
         <Card>
           <CardHeader>
@@ -362,43 +650,56 @@ export default async function AnalysePage() {
               Aucune position. Importe ton portefeuille depuis le dashboard.
             </p>
           ) : (
-            holdings.map((h) => (
-              <Link
-                key={h.id}
-                href={`/assets/${h.id}`}
-                className="bg-card flex items-center justify-between gap-3 rounded-lg border px-3 py-2"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{h.name}</p>
-                  <p className="text-muted-foreground truncate text-xs">
-                    {ASSET_TYPE_LABELS[h.type]} · {formatNumber(h.quantity, 4)}{" "}
-                    u. · PRU {formatCurrency(h.pru, h.currency)}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-medium">
-                    {formatCurrency(
-                      h.marketValue > 0 ? h.marketValue : h.invested,
-                      h.currency,
-                    )}
-                  </p>
-                  {h.invested > 0 && (
-                    <p
-                      className={
-                        h.unrealizedPnl >= 0
-                          ? "text-success text-xs"
-                          : "text-destructive text-xs"
-                      }
-                    >
-                      {formatPercent(h.unrealizedPnlPct)}
+            holdings.map((h) => {
+              const e = enrichedById.get(h.id);
+              return (
+                <Link
+                  key={h.id}
+                  href={`/assets/${h.id}`}
+                  className="bg-card flex items-center gap-3 rounded-lg border px-3 py-2"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">{h.name}</p>
+                    <p className="text-muted-foreground truncate text-xs">
+                      {ASSET_TYPE_LABELS[h.type]} ·{" "}
+                      {formatNumber(h.quantity, 4)} u. · PRU{" "}
+                      {formatCurrency(h.pru, h.currency)}
                     </p>
+                  </div>
+                  {e && e.history1y.length >= 2 && (
+                    <Sparkline
+                      data={e.history1y}
+                      positive={h.unrealizedPnl >= 0}
+                    />
                   )}
-                </div>
-              </Link>
-            ))
+                  <div className="text-right">
+                    <p className="text-sm font-medium">
+                      {formatCurrency(
+                        h.marketValue > 0 ? h.marketValue : h.invested,
+                        h.currency,
+                      )}
+                    </p>
+                    {h.invested > 0 && (
+                      <p
+                        className={
+                          h.unrealizedPnl >= 0
+                            ? "text-success text-xs"
+                            : "text-destructive text-xs"
+                        }
+                      >
+                        {formatPercent(h.unrealizedPnlPct)}
+                      </p>
+                    )}
+                  </div>
+                </Link>
+              );
+            })
           )}
         </CardContent>
       </Card>
     </div>
   );
 }
+
+// Keep static rendering off — fundamentals/historicals come from Yahoo on demand.
+export const dynamic = "force-dynamic";
