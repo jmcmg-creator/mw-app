@@ -1,5 +1,6 @@
 import Link from "next/link";
 import {
+  BarChart3,
   Building2,
   ChevronRight,
   LineChart,
@@ -152,12 +153,20 @@ export default async function DashboardPage() {
         )}
       </header>
 
-      <Button asChild variant="outline" size="sm">
-        <Link href="/import/portfolio">
-          <Upload className="size-4" />
-          Importer un portefeuille (Excel / PDF)
-        </Link>
-      </Button>
+      <div className="grid grid-cols-2 gap-2">
+        <Button asChild variant="outline" size="sm">
+          <Link href="/analyse">
+            <BarChart3 className="size-4" />
+            Analyse
+          </Link>
+        </Button>
+        <Button asChild variant="outline" size="sm">
+          <Link href="/import/portfolio">
+            <Upload className="size-4" />
+            Importer
+          </Link>
+        </Button>
+      </div>
 
       {!has2fa && (
         <Link href="/settings">
