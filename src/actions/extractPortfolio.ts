@@ -78,8 +78,9 @@ export async function extractPortfolio(
     ];
   }
 
+  // gpt-4o is markedly better on complex broker PDFs / tabular statements.
   const { object } = await generateObject({
-    model: openai("gpt-4o-mini"),
+    model: openai(isPdf ? "gpt-4o" : "gpt-4o-mini"),
     schema: positionSchema,
     messages: [{ role: "user", content }],
   });
