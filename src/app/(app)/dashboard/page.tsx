@@ -24,6 +24,7 @@ import {
 } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AutoRefresh } from "@/components/auto-refresh";
 import { DeleteButton } from "@/components/delete-button";
 import {
   AllocationChart,
@@ -137,6 +138,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-6 pt-2">
+      <AutoRefresh />
       <header className="flex flex-col gap-1">
         <span className="text-muted-foreground text-sm">Patrimoine total</span>
         <h1 className="text-3xl font-semibold tracking-tight">

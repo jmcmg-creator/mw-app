@@ -32,6 +32,7 @@ import {
   HoldingsTreemap,
   type TreemapCell,
 } from "@/components/holdings-treemap";
+import { AutoRefresh } from "@/components/auto-refresh";
 
 const ALLOCATION_COLORS: Record<string, string> = {
   ACTION: "#3b82f6",
@@ -133,6 +134,7 @@ export default async function AnalysePage() {
 
   return (
     <div className="flex flex-col gap-6 pt-2">
+      <AutoRefresh />
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="icon" asChild aria-label="Retour">
           <Link href="/dashboard">
