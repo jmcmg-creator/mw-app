@@ -5,6 +5,7 @@ import {
   LineChart,
   Plus,
   ShieldAlert,
+  Upload,
   Wallet,
 } from "lucide-react";
 
@@ -150,6 +151,13 @@ export default async function DashboardPage() {
           </span>
         )}
       </header>
+
+      <Button asChild variant="outline" size="sm">
+        <Link href="/import/portfolio">
+          <Upload className="size-4" />
+          Importer un portefeuille (Excel / PDF)
+        </Link>
+      </Button>
 
       {!has2fa && (
         <Link href="/settings">
