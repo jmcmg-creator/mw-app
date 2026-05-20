@@ -177,6 +177,16 @@ model Asset {
   cachedMarketPrice Decimal?  @map("cached_market_price") @db.Decimal(18, 6)
   pruUpdatedAt      DateTime? @map("pru_updated_at")
 
+  // --- Fundamentals (refreshed weekly via Yahoo quoteSummary) ---
+  sector                String?   @map("sector")
+  industry              String?   @map("industry")
+  marketCap             Decimal?  @map("market_cap") @db.Decimal(18, 2)
+  peRatio               Decimal?  @map("pe_ratio") @db.Decimal(10, 4)
+  debtToEquity          Decimal?  @map("debt_to_equity") @db.Decimal(10, 4)
+  freeCashflow          Decimal?  @map("free_cashflow") @db.Decimal(18, 2)
+  ytdReturn             Decimal?  @map("ytd_return") @db.Decimal(10, 6)
+  fundamentalsUpdatedAt DateTime? @map("fundamentals_updated_at")
+
   // --- Real estate (IMMO) ---
   propertyType     PropertyType? @map("property_type")
   surface_sqm      Decimal?      @map("surface_sqm") @db.Decimal(10, 2)

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
 import { fetchQuote } from "@/actions/fetchQuote";
+import { fetchFundamentals } from "@/actions/fetchFundamentals";
 import { calculateStockPerformance } from "@/actions/calculateStockPerformance";
 
 /**
@@ -27,6 +28,7 @@ export async function GET(request: Request) {
       const quote = await fetchQuote(asset.ticker);
       if (!quote) return false;
       await calculateStockPerformance(asset.id, { marketPrice: quote.price });
+      await fetchFundamentals(asset.id);
       return true;
     }),
   );

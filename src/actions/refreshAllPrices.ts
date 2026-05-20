@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/auth";
 import { fetchQuote } from "@/actions/fetchQuote";
+import { fetchFundamentals } from "@/actions/fetchFundamentals";
 import { calculateStockPerformance } from "@/actions/calculateStockPerformance";
 
 /** Refreshes every tracked market price for the current user's portfolios. */
@@ -20,6 +21,8 @@ export async function refreshAllPrices(): Promise<{ updated: number }> {
       const quote = await fetchQuote(asset.ticker);
       if (!quote) return false;
       await calculateStockPerformance(asset.id, { marketPrice: quote.price });
+      // Refresh fundamentals in the background (weekly cadence enforced inside).
+      fetchFundamentals(asset.id).catch(() => {});
       return true;
     }),
   );

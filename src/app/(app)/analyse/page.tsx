@@ -33,6 +33,8 @@ import {
   type TreemapCell,
 } from "@/components/holdings-treemap";
 import { AutoRefresh } from "@/components/auto-refresh";
+import { PortfolioHistoryChart } from "@/components/portfolio-history-chart";
+import { SparklineChart } from "@/components/sparkline-chart";
 
 const ALLOCATION_COLORS: Record<string, string> = {
   ACTION: "#3b82f6",
@@ -97,6 +99,7 @@ export default async function AnalysePage() {
       transactions: { orderBy: { date: "desc" } },
       structuredDetails: true,
     },
+    orderBy: { name: "asc" },
   });
 
   const holdings = rawAssets.map((asset) => buildHolding(asset as RawAsset));
@@ -118,6 +121,37 @@ export default async function AnalysePage() {
       label: code,
       value,
       color: CURRENCY_COLORS[index % CURRENCY_COLORS.length],
+    }));
+
+  // Group holdings by sector (only assets with a known sector).
+  const bySector: Record<string, number> = {};
+  for (let i = 0; i < rawAssets.length; i++) {
+    const a = rawAssets[i];
+    const h = holdings[i];
+    const label = a.sector ?? null;
+    if (!label) continue;
+    const value = h.marketValue > 0 ? h.marketValue : h.invested;
+    bySector[label] = (bySector[label] ?? 0) + value;
+  }
+  const sectorColors = [
+    "#3b82f6",
+    "#10b981",
+    "#f59e0b",
+    "#8b5cf6",
+    "#06b6d4",
+    "#ef4444",
+    "#84cc16",
+    "#f97316",
+    "#ec4899",
+    "#14b8a6",
+  ];
+  const sectorSlices: AllocationSlice[] = Object.entries(bySector)
+    .filter(([, v]) => v > 0)
+    .sort((a, b) => b[1] - a[1])
+    .map(([label, value], i) => ({
+      label,
+      value,
+      color: sectorColors[i % sectorColors.length],
     }));
 
   const treemap: TreemapCell[] = holdings
@@ -145,6 +179,20 @@ export default async function AnalysePage() {
           Analyse du portefeuille
         </h1>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">
+            Historique du portefeuille
+          </CardTitle>
+          <CardDescription>
+            Valeur totale des positions au marché
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <PortfolioHistoryChart />
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-2 gap-3">
         <Kpi
@@ -185,6 +233,17 @@ export default async function AnalysePage() {
           </CardHeader>
           <CardContent>
             <AllocationChart data={currencySlices} total={metrics.totalValue} />
+          </CardContent>
+        </Card>
+      )}
+
+      {sectorSlices.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Répartition sectorielle</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <AllocationChart data={sectorSlices} total={metrics.totalValue} />
           </CardContent>
         </Card>
       )}
@@ -362,40 +421,83 @@ export default async function AnalysePage() {
               Aucune position. Importe ton portefeuille depuis le dashboard.
             </p>
           ) : (
-            holdings.map((h) => (
-              <Link
-                key={h.id}
-                href={`/assets/${h.id}`}
-                className="bg-card flex items-center justify-between gap-3 rounded-lg border px-3 py-2"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{h.name}</p>
-                  <p className="text-muted-foreground truncate text-xs">
-                    {ASSET_TYPE_LABELS[h.type]} · {formatNumber(h.quantity, 4)}{" "}
-                    u. · PRU {formatCurrency(h.pru, h.currency)}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-medium">
-                    {formatCurrency(
-                      h.marketValue > 0 ? h.marketValue : h.invested,
-                      h.currency,
-                    )}
-                  </p>
-                  {h.invested > 0 && (
-                    <p
-                      className={
-                        h.unrealizedPnl >= 0
-                          ? "text-success text-xs"
-                          : "text-destructive text-xs"
-                      }
-                    >
-                      {formatPercent(h.unrealizedPnlPct)}
-                    </p>
+            holdings.map((h, i) => {
+              const a = rawAssets[i];
+              return (
+                <Link
+                  key={h.id}
+                  href={`/assets/${h.id}`}
+                  className="bg-card flex items-center gap-3 rounded-lg border px-3 py-2"
+                >
+                  {/* Sparkline */}
+                  {h.ticker && (
+                    <div className="hidden shrink-0 sm:block">
+                      <SparklineChart ticker={h.ticker} />
+                    </div>
                   )}
-                </div>
-              </Link>
-            ))
+
+                  {/* Name + meta */}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">{h.name}</p>
+                    <p className="text-muted-foreground truncate text-xs">
+                      {ASSET_TYPE_LABELS[h.type]}
+                      {a.sector ? ` · ${a.sector}` : ""}
+                      {` · ${formatNumber(h.quantity, 4)} u.`}
+                    </p>
+                  </div>
+
+                  {/* Fundamentals chips */}
+                  <div className="hidden flex-col items-end gap-0.5 text-xs sm:flex">
+                    {a.peRatio != null && (
+                      <span className="text-muted-foreground">
+                        P/E {formatNumber(toNumber(a.peRatio), 1)}
+                      </span>
+                    )}
+                    {a.ytdReturn != null && (
+                      <span
+                        className={
+                          toNumber(a.ytdReturn) >= 0
+                            ? "text-success"
+                            : "text-destructive"
+                        }
+                      >
+                        YTD {formatPercent(toNumber(a.ytdReturn))}
+                      </span>
+                    )}
+                    {a.marketCap != null && (
+                      <span className="text-muted-foreground">
+                        {formatCurrency(
+                          toNumber(a.marketCap) / 1e9,
+                          "EUR",
+                        ).replace("€", "")}
+                        B
+                      </span>
+                    )}
+                  </div>
+
+                  {/* P&L */}
+                  <div className="shrink-0 text-right">
+                    <p className="text-sm font-medium">
+                      {formatCurrency(
+                        h.marketValue > 0 ? h.marketValue : h.invested,
+                        h.currency,
+                      )}
+                    </p>
+                    {h.invested > 0 && (
+                      <p
+                        className={
+                          h.unrealizedPnl >= 0
+                            ? "text-success text-xs"
+                            : "text-destructive text-xs"
+                        }
+                      >
+                        {formatPercent(h.unrealizedPnlPct)}
+                      </p>
+                    )}
+                  </div>
+                </Link>
+              );
+            })
           )}
         </CardContent>
       </Card>

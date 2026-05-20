@@ -19,6 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DocumentsCard } from "@/components/documents-card";
+import { SparklineChart } from "@/components/sparkline-chart";
 import { UpdatePriceForm } from "./_components/update-price-form";
 import { StructuredEvaluation } from "./_components/structured-evaluation";
 
@@ -128,6 +129,64 @@ export default async function AssetDetailPage({
           />
         </CardContent>
       </Card>
+
+      {asset.ticker &&
+        (asset.sector ||
+          asset.marketCap ||
+          asset.peRatio ||
+          asset.debtToEquity ||
+          asset.freeCashflow ||
+          asset.ytdReturn) && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Fondamentaux</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              {asset.ticker && <SparklineChart ticker={asset.ticker} />}
+              <div className="grid grid-cols-2 gap-3">
+                {asset.sector && (
+                  <Metric label="Secteur" value={asset.sector} />
+                )}
+                {asset.industry && (
+                  <Metric label="Industrie" value={asset.industry} />
+                )}
+                {asset.marketCap != null && (
+                  <Metric
+                    label="Capitalisation"
+                    value={formatCurrency(toNumber(asset.marketCap), currency)}
+                  />
+                )}
+                {asset.peRatio != null && (
+                  <Metric
+                    label="P/E"
+                    value={formatNumber(toNumber(asset.peRatio), 2)}
+                  />
+                )}
+                {asset.debtToEquity != null && (
+                  <Metric
+                    label="Dette / Capitaux"
+                    value={formatNumber(toNumber(asset.debtToEquity), 2)}
+                  />
+                )}
+                {asset.freeCashflow != null && (
+                  <Metric
+                    label="Free Cash-Flow"
+                    value={formatCurrency(
+                      toNumber(asset.freeCashflow),
+                      currency,
+                    )}
+                  />
+                )}
+                {asset.ytdReturn != null && (
+                  <Metric
+                    label="Perf YTD"
+                    value={formatPercent(toNumber(asset.ytdReturn))}
+                  />
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
       {details && (
         <Card>
