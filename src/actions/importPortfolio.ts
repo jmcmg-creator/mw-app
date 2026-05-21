@@ -13,14 +13,22 @@ export type PortfolioImportInput = {
   type: AssetType | null;
   quantity: number;
   unitPrice: number | null;
+  /** Last known market price — seeds `cachedMarketPrice` on creation. */
+  currentPrice?: number | null;
   currency: Currency;
   date: string | null;
+};
+
+export type CashImportInput = {
+  currency: Currency;
+  amount: number;
 };
 
 export type ImportResult = {
   assetsCreated: number;
   assetsExisting: number;
   transactions: number;
+  cashBalances: number;
 };
 
 /**
@@ -30,6 +38,7 @@ export type ImportResult = {
  */
 export async function importPortfolio(
   positions: PortfolioImportInput[],
+  cashBalances: CashImportInput[] = [],
 ): Promise<ImportResult> {
   const userId = await requireUserId();
   const portfolio = await getDefaultPortfolio(userId);
@@ -38,8 +47,9 @@ export async function importPortfolio(
     assetsCreated: 0,
     assetsExisting: 0,
     transactions: 0,
+    cashBalances: 0,
   };
-  const touched = new Set<string>();
+  const touched = new Map<string, number | null>();
 
   for (const position of positions) {
     if (!position.name?.trim() || position.quantity <= 0) continue;
@@ -90,12 +100,41 @@ export async function importPortfolio(
         amountInBaseCurrency: amount,
       },
     });
-    touched.add(asset.id);
+    // Last-seen market price wins; null means "no override".
+    const previous = touched.get(asset.id);
+    const next =
+      position.currentPrice != null && Number.isFinite(position.currentPrice)
+        ? position.currentPrice
+        : (previous ?? null);
+    touched.set(asset.id, next);
     result.transactions += 1;
   }
 
-  for (const id of touched) {
-    await calculateStockPerformance(id);
+  for (const [id, marketPrice] of touched) {
+    await calculateStockPerformance(
+      id,
+      marketPrice != null ? { marketPrice } : undefined,
+    );
   }
+
+  for (const cash of cashBalances) {
+    if (!cash.amount || !Number.isFinite(cash.amount)) continue;
+    await prisma.cashBalance.upsert({
+      where: {
+        portfolioId_currency: {
+          portfolioId: portfolio.id,
+          currency: cash.currency,
+        },
+      },
+      create: {
+        portfolioId: portfolio.id,
+        currency: cash.currency,
+        amount: cash.amount,
+      },
+      update: { amount: cash.amount },
+    });
+    result.cashBalances += 1;
+  }
+
   return result;
 }

@@ -5,32 +5,114 @@ import { openai } from "@ai-sdk/openai";
 import { generateObject } from "ai";
 import { z } from "zod";
 
+const currencyEnum = z.enum(["EUR", "USD", "GBP", "CHF", "JPY", "CAD", "AUD"]);
+
 const positionSchema = z.object({
-  positions: z.array(
-    z.object({
-      name: z.string().describe("Nom de la valeur"),
-      ticker: z.string().nullable(),
-      isin: z.string().nullable().describe("Code ISIN 12 caractères ou null"),
-      type: z.enum(["ACTION", "ETF", "OBLIGATION", "STRUCTURE"]).nullable(),
-      quantity: z.number().describe("Quantité d'unités détenues"),
-      unitPrice: z
-        .number()
-        .nullable()
-        .describe("PRU/prix d'achat ou à défaut cours actuel"),
-      currency: z.enum(["EUR", "USD", "GBP", "CHF", "JPY", "CAD", "AUD"]),
-      date: z.string().nullable().describe("Date d'achat YYYY-MM-DD ou null"),
-    }),
-  ),
+  name: z.string().describe("Nom de la valeur"),
+  ticker: z.string().nullable(),
+  isin: z.string().nullable().describe("Code ISIN 12 caractères ou null"),
+  type: z.enum(["ACTION", "ETF", "OBLIGATION", "STRUCTURE"]).nullable(),
+  sector: z
+    .string()
+    .nullable()
+    .describe(
+      "Secteur de la société si présent dans le document (ex: Technologie, Santé)",
+    ),
+  quantity: z.number().describe("Quantité d'unités détenues"),
+  unitPrice: z.number().nullable().describe("PRU / prix d'achat si indiqué"),
+  currentPrice: z
+    .number()
+    .nullable()
+    .describe("Cours actuel / valeur unitaire de marché si indiqué"),
+  currentValue: z
+    .number()
+    .nullable()
+    .describe("Valorisation totale de la ligne si indiquée"),
+  gainAmount: z
+    .number()
+    .nullable()
+    .describe("Plus/moins-value latente en montant si indiquée"),
+  gainPct: z
+    .number()
+    .nullable()
+    .describe("Plus/moins-value latente en % (0.12 pour +12%) si indiquée"),
+  weight: z
+    .number()
+    .nullable()
+    .describe("Poids dans le portefeuille (0.08 pour 8%) si indiqué"),
+  dividendYield: z
+    .number()
+    .nullable()
+    .describe("Rendement dividende (0.03 pour 3%) si indiqué"),
+  currency: currencyEnum,
+  date: z.string().nullable().describe("Date d'achat YYYY-MM-DD ou null"),
 });
 
-export type ExtractedPosition = z.infer<
-  typeof positionSchema
->["positions"][number];
+const cashSchema = z.object({
+  currency: currencyEnum,
+  amount: z.number(),
+});
+
+const statementSchema = z.object({
+  broker: z
+    .string()
+    .nullable()
+    .describe("Courtier émetteur du document si identifiable"),
+  accountNumber: z
+    .string()
+    .nullable()
+    .describe("Numéro de compte si présent (masqué partiellement OK)"),
+  accountType: z
+    .string()
+    .nullable()
+    .describe("Type de compte (PEA, CTO, AV, Compte titres…)"),
+  statementDate: z
+    .string()
+    .nullable()
+    .describe("Date d'arrêté du relevé YYYY-MM-DD"),
+  periodStart: z
+    .string()
+    .nullable()
+    .describe("Début de période YYYY-MM-DD si applicable"),
+  periodEnd: z
+    .string()
+    .nullable()
+    .describe("Fin de période YYYY-MM-DD si applicable"),
+  baseCurrency: currencyEnum.nullable(),
+  totalValue: z
+    .number()
+    .nullable()
+    .describe("Valorisation totale du portefeuille indiquée"),
+  totalInvested: z
+    .number()
+    .nullable()
+    .describe("Montant investi total indiqué"),
+  totalGain: z
+    .number()
+    .nullable()
+    .describe("Plus/moins-value latente totale en montant"),
+  totalGainPct: z
+    .number()
+    .nullable()
+    .describe("Plus/moins-value latente totale en % (0.12 = +12%)"),
+  cashBalances: z
+    .array(cashSchema)
+    .describe("Liquidités par devise si présentes (sinon tableau vide)"),
+});
+
+const extractionSchema = z.object({
+  statement: statementSchema,
+  positions: z.array(positionSchema),
+});
+
+export type ExtractedPosition = z.infer<typeof positionSchema>;
+export type ExtractedStatement = z.infer<typeof statementSchema>;
+export type ExtractedPortfolio = z.infer<typeof extractionSchema>;
 
 /** Extracts every holding from a brokerage statement (Excel or PDF). */
 export async function extractPortfolio(
   formData: FormData,
-): Promise<ExtractedPosition[]> {
+): Promise<ExtractedPortfolio> {
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) {
     throw new Error("No file provided.");
@@ -46,12 +128,20 @@ export async function extractPortfolio(
   const isPdf = mime.includes("pdf") || /\.pdf$/i.test(file.name);
 
   const instruction =
-    "Extrais TOUTES les positions présentes dans ce relevé de portefeuille. " +
-    "Pour chacune: name (nom de la valeur), ticker si présent, isin (12 car) " +
-    "si présent, type (ACTION/ETF/OBLIGATION/STRUCTURE) à deviner du contexte, " +
-    "quantity (nombre d'unités détenues), unitPrice (PRU/prix d'achat si " +
-    "indiqué, sinon le cours actuel), currency, date (YYYY-MM-DD) si " +
-    "disponible. Ignore les lignes de cash, frais et totaux.";
+    "Tu lis un relevé de portefeuille (courtier, banque, assurance-vie). " +
+    "Renvoie TOUTES les informations utiles présentes dans le document.\n\n" +
+    "**statement** — métadonnées du relevé (broker, numéro de compte, type " +
+    "de compte PEA/CTO/AV, date d'arrêté, période, devise de référence, " +
+    "valorisation totale, montant investi, plus/moins-value latente totale, " +
+    "liquidités par devise). Les champs absents → null (ou tableau vide " +
+    "pour cashBalances).\n\n" +
+    "**positions** — pour CHAQUE ligne détenue (ignore cash, frais, totaux) :" +
+    " name, ticker, isin (12 car), type (ACTION/ETF/OBLIGATION/STRUCTURE), " +
+    "sector (technologie, santé, énergie...), quantity, unitPrice (PRU), " +
+    "currentPrice (cours du jour si indiqué), currentValue (valorisation " +
+    "totale ligne), gainAmount, gainPct (0.12 = +12%), weight (0.08 = 8% " +
+    "du portefeuille), dividendYield, currency, date d'achat YYYY-MM-DD. " +
+    "Tout champ absent → null. Ne devine pas un PRU à partir du cours.";
 
   let content: Array<
     | { type: "text"; text: string }
@@ -81,9 +171,9 @@ export async function extractPortfolio(
   // gpt-4o is markedly better on complex broker PDFs / tabular statements.
   const { object } = await generateObject({
     model: openai(isPdf ? "gpt-4o" : "gpt-4o-mini"),
-    schema: positionSchema,
+    schema: extractionSchema,
     messages: [{ role: "user", content }],
   });
 
-  return object.positions;
+  return object;
 }
