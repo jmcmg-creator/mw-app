@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, ShieldCheck } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/client";
+import { recordMfaVerified } from "@/actions/recordMfaVerified";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -53,6 +54,7 @@ export default function Verify2faPage() {
       return;
     }
 
+    await recordMfaVerified();
     router.push("/dashboard");
     router.refresh();
   }
