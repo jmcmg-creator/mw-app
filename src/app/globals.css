@@ -116,6 +116,7 @@
   --color-sidebar-ring: var(--sidebar-ring);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --breakpoint-xs: 25rem;
 }
 
 @layer base {

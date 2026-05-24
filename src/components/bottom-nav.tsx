@@ -16,7 +16,7 @@ export function BottomNav() {
 
   return (
     <nav className="bg-background/95 border-border sticky bottom-0 border-t backdrop-blur">
-      <div className="mx-auto flex max-w-md items-stretch justify-around px-5 pb-[env(safe-area-inset-bottom)]">
+      <div className="mx-auto flex max-w-xl items-stretch justify-around px-5 pb-[env(safe-area-inset-bottom)]">
         {ITEMS.map((item) => {
           const active =
             pathname === item.href || pathname.startsWith(`${item.href}/`);

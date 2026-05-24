@@ -46,27 +46,27 @@ import {
 const FIELD_CLASS =
   "border-input flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-base shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] md:text-sm";
 
-const TYPE_BADGE_COLORS: Record<string, string> = {
-  ACTION: "bg-blue-500/15 text-blue-600 dark:text-blue-400",
-  ETF: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
-  OBLIGATION: "bg-amber-500/15 text-amber-600 dark:text-amber-500",
-  STRUCTURE: "bg-violet-500/15 text-violet-600 dark:text-violet-400",
-  SECURISE: "bg-slate-500/15 text-slate-600 dark:text-slate-400",
+const TYPE_STRIPE: Record<string, string> = {
+  ACTION: "oklch(0.55 0.18 264)",
+  ETF: "var(--success)",
+  OBLIGATION: "var(--warning)",
+  STRUCTURE: "oklch(0.6 0.2 303)",
+  SECURISE: "var(--muted-foreground)",
 };
 
 const SECTOR_COLORS = [
-  "#3b82f6",
-  "#10b981",
-  "#f59e0b",
-  "#8b5cf6",
-  "#06b6d4",
-  "#ef4444",
-  "#84cc16",
-  "#ec4899",
-  "#14b8a6",
-  "#a855f7",
-  "#f97316",
-  "#64748b",
+  "oklch(0.55 0.18 264)",
+  "oklch(0.65 0.16 162)",
+  "oklch(0.75 0.16 70)",
+  "oklch(0.6 0.2 303)",
+  "oklch(0.65 0.13 184)",
+  "oklch(0.62 0.22 27)",
+  "oklch(0.7 0.16 130)",
+  "oklch(0.6 0.22 350)",
+  "oklch(0.7 0.14 195)",
+  "oklch(0.55 0.2 285)",
+  "oklch(0.66 0.2 45)",
+  "oklch(0.55 0.04 257)",
 ];
 
 function formatDateRange(start: string | null, end: string | null) {
@@ -274,28 +274,37 @@ function PositionRow({
 
   const declaredWeight = position.weight ?? weight;
 
+  const stripe = TYPE_STRIPE[type] ?? TYPE_STRIPE.SECURISE;
   return (
-    <li className="bg-card flex flex-col gap-2 rounded-lg border px-3 py-3">
+    <li className="bg-card relative flex flex-col gap-2 overflow-hidden rounded-xl border px-3 py-3 pl-4">
+      <span
+        aria-hidden
+        className="absolute top-2 bottom-2 left-0 w-1 rounded-r-full"
+        style={{ backgroundColor: stripe }}
+      />
       <div className="flex items-start gap-2">
-        <span
-          className={`mt-0.5 rounded-md px-1.5 py-0.5 text-[10px] font-semibold tracking-wide uppercase ${TYPE_BADGE_COLORS[type] ?? TYPE_BADGE_COLORS.SECURISE}`}
-        >
-          {ASSET_TYPE_LABELS[type] ?? type}
-        </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm leading-tight font-medium">
+          <p className="truncate text-sm leading-tight font-semibold">
             {position.name}
           </p>
-          <p className="text-muted-foreground truncate text-xs">
-            {subtitleParts.join(" · ")}
+          <p className="text-muted-foreground mt-0.5 flex items-center gap-1.5 truncate text-[11px]">
+            <span
+              className="bg-muted rounded px-1 py-px text-[10px] font-medium tracking-wide uppercase"
+              style={{ color: stripe }}
+            >
+              {ASSET_TYPE_LABELS[type] ?? type}
+            </span>
+            {subtitleParts
+              .filter((s) => s !== (ASSET_TYPE_LABELS[type] ?? type))
+              .join(" · ")}
           </p>
         </div>
         {gainPct != null && (
           <span
             className={
               gainPct >= 0
-                ? "text-success text-xs font-semibold whitespace-nowrap"
-                : "text-destructive text-xs font-semibold whitespace-nowrap"
+                ? "bg-success/10 text-success rounded-full px-2 py-0.5 text-xs font-semibold whitespace-nowrap tabular-nums"
+                : "bg-destructive/10 text-destructive rounded-full px-2 py-0.5 text-xs font-semibold whitespace-nowrap tabular-nums"
             }
           >
             {gainPct >= 0 ? "+" : ""}
@@ -306,7 +315,7 @@ function PositionRow({
 
       {position.sector && (
         <div>
-          <span className="bg-muted text-muted-foreground inline-block rounded-md px-1.5 py-0.5 text-[10px] font-medium">
+          <span className="bg-primary/10 text-primary inline-block rounded-full px-2 py-0.5 text-[10px] font-medium">
             {position.sector}
           </span>
         </div>

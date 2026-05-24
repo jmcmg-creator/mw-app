@@ -26,12 +26,20 @@ const RANGES: { key: HistoricalRange; label: string }[] = [
   { key: "5y", label: "5A" },
 ];
 
+/**
+ * Hero portfolio chart: the big patrimoine value, period delta and an area
+ * chart with 1A/3A/5A tabs, designed to feel like the top section of a
+ * proper wealth-management dashboard.
+ */
 export function PortfolioHistoryChart({
   series,
   currency,
+  currentValue,
 }: {
   series: PortfolioHistorySeries;
   currency: string;
+  /** Today's portfolio value, used when the historical series can't reach it. */
+  currentValue?: number;
 }) {
   const [range, setRange] = useState<HistoricalRange>("1y");
   const data = series[range];
@@ -39,23 +47,53 @@ export function PortfolioHistoryChart({
   const stats = useMemo(() => {
     if (data.length < 2) return null;
     const first = data[0].value;
-    const last = data[data.length - 1].value;
+    const last = currentValue ?? data[data.length - 1].value;
     if (!first) return null;
     return {
+      first,
+      last,
       delta: last - first,
       pct: (last - first) / first,
       positive: last >= first,
     };
-  }, [data]);
+  }, [data, currentValue]);
 
   const isPositive = stats?.positive ?? true;
-  const stroke = isPositive ? "#10b981" : "#ef4444";
-  const fillId = isPositive ? "portfolioFillUp" : "portfolioFillDown";
+  const stroke = isPositive ? "var(--success)" : "var(--destructive)";
+  const fillId = `portfolioFill-${range}-${isPositive ? "u" : "d"}`;
+
+  const headline = currentValue ?? stats?.last ?? 0;
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <div className="flex gap-1">
+    <div className="flex flex-col gap-5">
+      <div className="flex items-end justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <span className="text-muted-foreground text-[11px] font-medium tracking-widest uppercase">
+            Patrimoine
+          </span>
+          <span className="text-3xl font-bold tracking-tight tabular-nums">
+            {formatCurrency(headline, currency)}
+          </span>
+          {stats && (
+            <div className="flex items-center gap-2">
+              <span
+                className={
+                  isPositive
+                    ? "bg-success/10 text-success rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums"
+                    : "bg-destructive/10 text-destructive rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums"
+                }
+              >
+                {isPositive ? "▲" : "▼"} {Math.abs(stats.pct * 100).toFixed(1)}%
+              </span>
+              <span className="text-muted-foreground text-xs tabular-nums">
+                {stats.delta >= 0 ? "+" : "−"}
+                {formatCurrency(Math.abs(stats.delta), currency)}
+              </span>
+            </div>
+          )}
+        </div>
+
+        <div className="bg-muted/60 flex gap-0.5 rounded-lg p-0.5">
           {RANGES.map((r) => (
             <button
               key={r.key}
@@ -63,42 +101,30 @@ export function PortfolioHistoryChart({
               onClick={() => setRange(r.key)}
               className={
                 range === r.key
-                  ? "bg-primary text-primary-foreground rounded-md px-2 py-1 text-xs font-medium"
-                  : "text-muted-foreground hover:bg-muted rounded-md px-2 py-1 text-xs font-medium"
+                  ? "bg-card text-foreground rounded-md px-2.5 py-1 text-xs font-semibold shadow-sm"
+                  : "text-muted-foreground hover:text-foreground rounded-md px-2.5 py-1 text-xs font-medium"
               }
             >
               {r.label}
             </button>
           ))}
         </div>
-        {stats && (
-          <span
-            className={
-              isPositive
-                ? "text-success text-xs font-medium"
-                : "text-destructive text-xs font-medium"
-            }
-          >
-            {formatCurrency(stats.delta, currency)} (
-            {(stats.pct * 100).toFixed(1)}%)
-          </span>
-        )}
       </div>
 
-      <div className="h-56 w-full">
+      <div className="h-44 w-full">
         {data.length < 2 ? (
-          <div className="text-muted-foreground flex h-full items-center justify-center text-sm">
+          <div className="bg-muted/30 text-muted-foreground flex h-full items-center justify-center rounded-lg text-sm">
             Historique indisponible.
           </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart
               data={data}
-              margin={{ top: 8, right: 4, left: 4, bottom: 0 }}
+              margin={{ top: 8, right: 0, left: 0, bottom: 0 }}
             >
               <defs>
                 <linearGradient id={fillId} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={stroke} stopOpacity={0.35} />
+                  <stop offset="0%" stopColor={stroke} stopOpacity={0.32} />
                   <stop offset="100%" stopColor={stroke} stopOpacity={0} />
                 </linearGradient>
               </defs>
@@ -127,7 +153,7 @@ export function PortfolioHistoryChart({
                 tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
                 axisLine={false}
                 tickLine={false}
-                width={36}
+                width={32}
               />
               <Tooltip
                 contentStyle={{
@@ -135,6 +161,17 @@ export function PortfolioHistoryChart({
                   border: "1px solid var(--border)",
                   borderRadius: 8,
                   fontSize: 12,
+                  padding: "6px 10px",
+                }}
+                labelStyle={{
+                  color: "var(--muted-foreground)",
+                  fontSize: 11,
+                  marginBottom: 2,
+                }}
+                cursor={{
+                  stroke: "var(--muted-foreground)",
+                  strokeDasharray: "3 3",
+                  strokeOpacity: 0.6,
                 }}
                 labelFormatter={(t) =>
                   new Date(Number(t)).toLocaleDateString("fr-FR", {
