@@ -287,9 +287,23 @@ export default async function AnalysePage() {
         />
         <Kpi
           label="+/- value"
-          value={formatCurrency(metrics.unrealizedPnl, baseCurrency)}
-          delta={formatPercent(metrics.unrealizedPnlPct)}
-          positive={metrics.unrealizedPnl >= 0}
+          value={
+            metrics.hasAnyMarketPrice
+              ? formatCurrency(metrics.unrealizedPnl, baseCurrency)
+              : "—"
+          }
+          delta={
+            metrics.hasAnyMarketPrice
+              ? `${formatPercent(metrics.unrealizedPnlPct)}${
+                  metrics.pricedCoverage < 0.999
+                    ? ` · sur ${formatPercent(metrics.pricedCoverage)}`
+                    : ""
+                }`
+              : "Aucun prix marché"
+          }
+          positive={
+            metrics.hasAnyMarketPrice ? metrics.unrealizedPnl >= 0 : undefined
+          }
         />
         <Kpi
           label="Dividendes"
@@ -298,7 +312,10 @@ export default async function AnalysePage() {
         <Kpi
           label="Positions"
           value={String(holdings.length)}
-          delta={`Top 5 · ${formatPercent(metrics.topConcentration)}`}
+          delta={`Top 5 · ${(metrics.topConcentration * 100).toLocaleString(
+            "fr-FR",
+            { maximumFractionDigits: 0 },
+          )} %`}
         />
       </div>
 

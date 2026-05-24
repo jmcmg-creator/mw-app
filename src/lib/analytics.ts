@@ -25,6 +25,7 @@ export type Holding = {
   marketValue: number;
   unrealizedPnl: number;
   unrealizedPnlPct: number;
+  hasMarketPrice: boolean;
   dividends: number;
 };
 
@@ -33,9 +34,11 @@ export function buildHolding(asset: RawAsset): Holding {
   const pru = toNumber(asset.cachedPru);
   const marketPrice = toNumber(asset.cachedMarketPrice);
   const invested = quantity * pru;
-  const marketValue = quantity * marketPrice;
-  const unrealizedPnl = marketValue - invested;
-  const unrealizedPnlPct = invested > 0 ? unrealizedPnl / invested : 0;
+  const hasMarketPrice = marketPrice > 0;
+  const marketValue = hasMarketPrice ? quantity * marketPrice : 0;
+  const unrealizedPnl = hasMarketPrice ? marketValue - invested : 0;
+  const unrealizedPnlPct =
+    hasMarketPrice && invested > 0 ? unrealizedPnl / invested : 0;
 
   let dividends = 0;
   for (const tx of asset.transactions) {
@@ -57,6 +60,7 @@ export function buildHolding(asset: RawAsset): Holding {
     marketValue,
     unrealizedPnl,
     unrealizedPnlPct,
+    hasMarketPrice,
     dividends,
   };
 }
@@ -66,6 +70,8 @@ export type PortfolioMetrics = {
   totalInvested: number;
   unrealizedPnl: number;
   unrealizedPnlPct: number;
+  hasAnyMarketPrice: boolean;
+  pricedCoverage: number;
   totalDividends: number;
   byType: Record<string, number>;
   byCurrency: Record<string, number>;
@@ -78,29 +84,38 @@ export type PortfolioMetrics = {
 
 export function computePortfolioMetrics(holdings: Holding[]): PortfolioMetrics {
   const totalInvested = holdings.reduce((s, h) => s + h.invested, 0);
-  const computedValue = holdings.reduce((s, h) => s + h.marketValue, 0);
-  // Fall back to cost basis when no market price is known.
-  const totalValue =
-    computedValue > 0
-      ? holdings.reduce(
-          (s, h) => s + (h.marketValue > 0 ? h.marketValue : h.invested),
-          0,
-        )
-      : totalInvested;
-  const unrealizedPnl = totalValue - totalInvested;
+  const hasAnyMarketPrice = holdings.some((h) => h.hasMarketPrice);
+  // Fall back to cost basis on holdings without a live market price so the
+  // portfolio total still reflects the position size.
+  const totalValue = holdings.reduce(
+    (s, h) => s + (h.hasMarketPrice ? h.marketValue : h.invested),
+    0,
+  );
+  // Only count the PnL of holdings that actually have a market price — the
+  // others are unknown and shouldn't be assumed flat against cost basis.
+  const pricedInvested = holdings.reduce(
+    (s, h) => s + (h.hasMarketPrice ? h.invested : 0),
+    0,
+  );
+  const pricedValue = holdings.reduce(
+    (s, h) => s + (h.hasMarketPrice ? h.marketValue : 0),
+    0,
+  );
+  const unrealizedPnl = pricedValue - pricedInvested;
   const unrealizedPnlPct =
-    totalInvested > 0 ? unrealizedPnl / totalInvested : 0;
+    pricedInvested > 0 ? unrealizedPnl / pricedInvested : 0;
+  const pricedCoverage = totalInvested > 0 ? pricedInvested / totalInvested : 0;
   const totalDividends = holdings.reduce((s, h) => s + h.dividends, 0);
 
   const byType: Record<string, number> = {};
   const byCurrency: Record<string, number> = {};
   for (const h of holdings) {
-    const value = h.marketValue > 0 ? h.marketValue : h.invested;
+    const value = h.hasMarketPrice ? h.marketValue : h.invested;
     byType[h.type] = (byType[h.type] ?? 0) + value;
     byCurrency[h.currency] = (byCurrency[h.currency] ?? 0) + value;
   }
 
-  const withPerf = holdings.filter((h) => h.invested > 0);
+  const withPerf = holdings.filter((h) => h.hasMarketPrice && h.invested > 0);
   const sortedByPct = [...withPerf].sort(
     (a, b) => b.unrealizedPnlPct - a.unrealizedPnlPct,
   );
@@ -130,6 +145,8 @@ export function computePortfolioMetrics(holdings: Holding[]): PortfolioMetrics {
     totalInvested,
     unrealizedPnl,
     unrealizedPnlPct,
+    hasAnyMarketPrice,
+    pricedCoverage,
     totalDividends,
     byType,
     byCurrency,

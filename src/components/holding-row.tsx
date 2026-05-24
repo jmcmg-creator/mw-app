@@ -15,6 +15,7 @@ export type HoldingRowData = {
   invested: number;
   unrealizedPnl: number;
   unrealizedPnlPct: number;
+  hasMarketPrice: boolean;
 };
 
 const TYPE_COLORS: Record<string, string> = {
@@ -39,8 +40,7 @@ export function HoldingRow({
   history?: HistoricalPoint[];
   href: string;
 }) {
-  const value =
-    holding.marketValue > 0 ? holding.marketValue : holding.invested;
+  const value = holding.hasMarketPrice ? holding.marketValue : holding.invested;
   const positive = holding.unrealizedPnl >= 0;
   const stripeColor = TYPE_COLORS[holding.type] ?? TYPE_COLORS.SECURISE;
 
@@ -80,7 +80,7 @@ export function HoldingRow({
         <span className="text-sm font-semibold tabular-nums">
           {formatCurrency(value, holding.currency)}
         </span>
-        {holding.invested > 0 && (
+        {holding.hasMarketPrice && holding.invested > 0 ? (
           <span
             className={
               positive
@@ -90,6 +90,8 @@ export function HoldingRow({
           >
             {formatPercent(holding.unrealizedPnlPct)}
           </span>
+        ) : (
+          <span className="text-muted-foreground text-xs">—</span>
         )}
       </div>
     </Link>
