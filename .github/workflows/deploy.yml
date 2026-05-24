@@ -57,15 +57,20 @@ jobs:
       - name: Install deps for migration
         run: npm ci --ignore-scripts
 
-      # Migrations run with the env sourced from vercel pull, so they see
-      # the real DATABASE_URL rather than the placeholder Prisma falls
-      # back to during `vercel build`'s sandboxed install.
+      # Migrations need DATABASE_URL. Read it from the dedicated GitHub
+      # Secret (more reliable than counting on `vercel pull` to surface it
+      # in CI). Falls back to the .vercel env file if the secret isn't
+      # set, so older setups keep working.
       - name: Apply Prisma migrations
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
-          set -a
-          [ -f .vercel/.env.preview.local ] && . .vercel/.env.preview.local
-          [ -f .vercel/.env.production.local ] && . .vercel/.env.production.local
-          set +a
+          if [ -z "$DATABASE_URL" ]; then
+            set -a
+            [ -f .vercel/.env.preview.local ] && . .vercel/.env.preview.local
+            [ -f .vercel/.env.production.local ] && . .vercel/.env.production.local
+            set +a
+          fi
           npx prisma migrate deploy
 
       - name: Build (preview)
