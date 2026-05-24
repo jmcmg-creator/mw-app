@@ -1,5 +1,3 @@
-import "dotenv/config";
-
 import { defineConfig } from "prisma/config";
 
 // `prisma generate` doesn't need a real DB connection but Prisma 7's strict
