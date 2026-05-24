@@ -50,8 +50,15 @@ jobs:
         if: github.ref == 'refs/heads/main'
         run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
 
-      # Migrations run here, with the env sourced from vercel pull, so they
-      # use the real DATABASE_URL rather than the placeholder Prisma falls
+      # `prisma migrate deploy` needs node_modules (prisma.config.ts imports
+      # `prisma/config`). Install with --ignore-scripts so the postinstall
+      # `prisma generate` is skipped — vercel build will do its own full
+      # install later anyway.
+      - name: Install deps for migration
+        run: npm ci --ignore-scripts
+
+      # Migrations run with the env sourced from vercel pull, so they see
+      # the real DATABASE_URL rather than the placeholder Prisma falls
       # back to during `vercel build`'s sandboxed install.
       - name: Apply Prisma migrations
         run: |
@@ -59,7 +66,7 @@ jobs:
           [ -f .vercel/.env.preview.local ] && . .vercel/.env.preview.local
           [ -f .vercel/.env.production.local ] && . .vercel/.env.production.local
           set +a
-          npx -y prisma@7 migrate deploy
+          npx prisma migrate deploy
 
       - name: Build (preview)
         if: github.ref != 'refs/heads/main'
