@@ -1,8 +1,9 @@
 name: Deploy
 
-# Auto-deploys every push to the active dev branch and to main. Runs the
-# Prisma migration first (via `vercel-build`), so schema changes apply
-# atomically with the code that depends on them.
+# Auto-deploys every push to the active dev branch and to main. Applies
+# the Prisma migration in a dedicated step before handing off to Vercel
+# build, because `vercel build` runs the build script in a sandbox that
+# does not expose DATABASE_URL to subprocesses.
 #
 # One-time setup (see README) — add these secrets in the repo settings:
 #   - VERCEL_TOKEN         https://vercel.com/account/tokens
@@ -49,26 +50,24 @@ jobs:
         if: github.ref == 'refs/heads/main'
         run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
 
-      # `prisma.config.ts` reads DATABASE_URL at module-load time, so the
-      # variable must be present in the shell before `vercel build` triggers
-      # its inner `npm install` (whose postinstall runs `prisma generate`).
-      # `vercel pull` writes `.vercel/.env.<env>.local` — source it so the
-      # whole step inherits the env.
-      - name: Build (preview)
-        if: github.ref != 'refs/heads/main'
+      # Migrations run here, with the env sourced from vercel pull, so they
+      # use the real DATABASE_URL rather than the placeholder Prisma falls
+      # back to during `vercel build`'s sandboxed install.
+      - name: Apply Prisma migrations
         run: |
           set -a
           [ -f .vercel/.env.preview.local ] && . .vercel/.env.preview.local
+          [ -f .vercel/.env.production.local ] && . .vercel/.env.production.local
           set +a
-          vercel build --token=${{ secrets.VERCEL_TOKEN }}
+          npx -y prisma@7 migrate deploy
+
+      - name: Build (preview)
+        if: github.ref != 'refs/heads/main'
+        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
 
       - name: Build (production)
         if: github.ref == 'refs/heads/main'
-        run: |
-          set -a
-          [ -f .vercel/.env.production.local ] && . .vercel/.env.production.local
-          set +a
-          vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
 
       - name: Deploy (preview)
         if: github.ref != 'refs/heads/main'
