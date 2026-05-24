@@ -87,7 +87,26 @@ jobs:
             exit 1
           fi
 
-          npx prisma migrate deploy
+          # `migrate deploy` fails with P3005 if the live database already
+          # has the schema but no `_prisma_migrations` history (e.g. when
+          # the DB was bootstrapped from raw SQL before Prisma Migrate).
+          # Detect that exact case once and baseline all existing
+          # migrations so future deploys work normally.
+          set +e
+          LOG=$(npx prisma migrate deploy 2>&1)
+          STATUS=$?
+          set -e
+          echo "$LOG"
+          if [ $STATUS -ne 0 ] && echo "$LOG" | grep -q "P3005"; then
+            echo "::warning::Schema is not empty — baselining existing migrations as already applied."
+            for MIG in prisma/migrations/*/; do
+              NAME=$(basename "$MIG")
+              npx prisma migrate resolve --applied "$NAME" || true
+            done
+            npx prisma migrate deploy
+          elif [ $STATUS -ne 0 ]; then
+            exit $STATUS
+          fi
 
       - name: Build (preview)
         if: github.ref != 'refs/heads/main'
