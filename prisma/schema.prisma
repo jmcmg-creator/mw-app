@@ -190,6 +190,12 @@ model Asset {
   currency    Currency  @default(EUR)
   notes       String?
 
+  // --- Custody / legal context (family office reporting) ---
+  // Free-text labels for now; can become enums or related entities later
+  // when the user starts consolidating multiple banks / SPVs.
+  custodian   String?  @map("custodian")
+  legalEntity String?  @map("legal_entity")
+
   // --- Market assets (ACTION / ETF / STRUCTURE / SECURISE) ---
   ticker String?
   isin   String?

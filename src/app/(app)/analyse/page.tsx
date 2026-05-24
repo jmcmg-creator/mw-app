@@ -616,9 +616,17 @@ export default async function AnalysePage() {
       {structured.length > 0 && (
         <Card className="py-5">
           <CardHeader>
-            <CardTitle className="text-sm font-semibold tracking-wide uppercase">
-              Produits structurés
-            </CardTitle>
+            <div className="flex items-baseline justify-between gap-2">
+              <CardTitle className="text-sm font-semibold tracking-wide uppercase">
+                Produits structurés
+              </CardTitle>
+              <Link
+                href="/structured-products"
+                className="text-xs font-medium text-slate-700 hover:underline"
+              >
+                Vue dédiée →
+              </Link>
+            </div>
             <CardDescription>
               Évaluation live sur la page de chaque produit
             </CardDescription>

@@ -33,8 +33,8 @@ export default async function AppLayout({
   ]);
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-xl flex-col">
-      <header className="flex items-center justify-between gap-2 px-5 py-4">
+    <div className="mx-auto flex min-h-dvh w-full max-w-xl flex-col lg:max-w-7xl">
+      <header className="flex items-center justify-between gap-2 px-5 py-4 lg:px-8 lg:py-5">
         <Link href="/dashboard" className="flex items-center gap-2">
           <div className="bg-primary text-primary-foreground flex size-8 items-center justify-center rounded-lg">
             <Wallet className="size-4" />
@@ -55,7 +55,7 @@ export default async function AppLayout({
         </div>
       </header>
 
-      <main className="flex flex-1 flex-col px-5 pb-8">{children}</main>
+      <main className="flex flex-1 flex-col px-5 pb-8 lg:px-8">{children}</main>
 
       <BottomNav />
     </div>
