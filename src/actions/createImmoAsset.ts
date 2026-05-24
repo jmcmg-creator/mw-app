@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/auth";
-import { getDefaultPortfolio } from "@/lib/portfolio";
+import { getActivePortfolio } from "@/lib/portfolio";
 import type { PropertyType } from "@/generated/prisma/enums";
 
 export type CreateImmoAssetInput = {
@@ -22,7 +22,7 @@ export async function createImmoAsset(
   input: CreateImmoAssetInput,
 ): Promise<string> {
   const userId = await requireUserId();
-  const portfolio = await getDefaultPortfolio(userId);
+  const portfolio = await getActivePortfolio(userId);
 
   const asset = await prisma.asset.create({
     data: {

@@ -68,6 +68,19 @@ enum ReferenceRate {
   LIVRET_A
 }
 
+enum HolderType {
+  INDIVIDUAL
+  COMPANY
+}
+
+enum CouponFrequency {
+  ANNUAL
+  SEMI_ANNUAL
+  QUARTERLY
+  MONTHLY
+  ZERO_COUPON
+}
+
 enum DocumentType {
   ACTE_VENTE
   BAIL
@@ -121,6 +134,9 @@ model User {
 // Portfolios & cash
 // ---------------------------------------------------------------------------
 
+// A Portfolio is scoped to a single "holder" (the individual or company that
+// actually owns the positions). Lets one user track several portfolios —
+// their own, their spouse's, an SCI, etc. — and filter the UI accordingly.
 model Portfolio {
   id           String   @id @default(uuid()) @db.Uuid
   userId       String   @map("user_id") @db.Uuid
@@ -128,14 +144,21 @@ model Portfolio {
   description  String?
   baseCurrency Currency @default(EUR) @map("base_currency")
   isDefault    Boolean  @default(false) @map("is_default")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // --- Holder identity (auto-filled from uploaded statements) ---
+  holderName  String?     @map("holder_name")
+  holderType  HolderType? @map("holder_type")
+  holderTaxId String?     @map("holder_tax_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   assets       Asset[]
   cashBalances CashBalance[]
 
   @@index([userId])
+  @@index([holderName])
   @@map("portfolios")
 }
 
@@ -167,6 +190,12 @@ model Asset {
   currency    Currency  @default(EUR)
   notes       String?
 
+  // --- Custody / legal context (family office reporting) ---
+  // Free-text labels for now; can become enums or related entities later
+  // when the user starts consolidating multiple banks / SPVs.
+  custodian   String?  @map("custodian")
+  legalEntity String?  @map("legal_entity")
+
   // --- Market assets (ACTION / ETF / STRUCTURE / SECURISE) ---
   ticker String?
   isin   String?
@@ -193,12 +222,36 @@ model Asset {
   portfolio         Portfolio                 @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
   transactions      Transaction[]
   structuredDetails StructuredProductDetails?
+  bondDetails       BondDetails?
   loans             Loan[]
   documents         Document[]
 
   @@index([portfolioId])
   @@index([ticker])
   @@map("assets")
+}
+
+// 1:1 extension of an Asset of type OBLIGATION. Holds the contractual cash
+// flow parameters: coupon, frequency, nominal and maturity. Used to project
+// future coupons and redemption on the "flux à venir" calendar.
+model BondDetails {
+  id              String          @id @default(uuid()) @db.Uuid
+  assetId         String          @unique @map("asset_id") @db.Uuid
+  couponRate      Decimal         @map("coupon_rate") @db.Decimal(8, 6)
+  couponFrequency CouponFrequency @default(ANNUAL) @map("coupon_frequency")
+  nominalAmount   Decimal?        @map("nominal_amount") @db.Decimal(18, 2)
+  issueDate       DateTime?       @map("issue_date")
+  maturityDate    DateTime        @map("maturity_date")
+  // Anchor for the next coupon — when null we infer it from maturityDate
+  // and the frequency.
+  nextCouponDate  DateTime?       @map("next_coupon_date")
+  issuer          String?
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+
+  asset Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@map("bond_details")
 }
 
 // ---------------------------------------------------------------------------

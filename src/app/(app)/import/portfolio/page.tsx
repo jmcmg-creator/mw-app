@@ -1,16 +1,37 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Loader2, Sparkles, Upload } from "lucide-react";
+import {
+  ArrowLeft,
+  Banknote,
+  Building2,
+  CalendarDays,
+  Hash,
+  Loader2,
+  Sparkles,
+  TrendingDown,
+  TrendingUp,
+  Upload,
+  User,
+  Users,
+  Wallet,
+} from "lucide-react";
 
 import {
   extractPortfolio,
+  type ExtractedPortfolio,
   type ExtractedPosition,
+  type ExtractedStatement,
 } from "@/actions/extractPortfolio";
 import { importPortfolio } from "@/actions/importPortfolio";
-import { formatCurrency, formatNumber } from "@/lib/format";
+import {
+  ASSET_TYPE_LABELS,
+  formatCurrency,
+  formatNumber,
+  formatPercent,
+} from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -19,9 +40,414 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  AllocationChart,
+  type AllocationSlice,
+} from "@/components/allocation-chart";
 
 const FIELD_CLASS =
   "border-input flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-base shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] md:text-sm";
+
+const TYPE_STRIPE: Record<string, string> = {
+  ACTION: "oklch(0.55 0.18 264)",
+  ETF: "var(--success)",
+  OBLIGATION: "var(--warning)",
+  STRUCTURE: "oklch(0.6 0.2 303)",
+  SECURISE: "var(--muted-foreground)",
+};
+
+const SECTOR_COLORS = [
+  "oklch(0.55 0.18 264)",
+  "oklch(0.65 0.16 162)",
+  "oklch(0.75 0.16 70)",
+  "oklch(0.6 0.2 303)",
+  "oklch(0.65 0.13 184)",
+  "oklch(0.62 0.22 27)",
+  "oklch(0.7 0.16 130)",
+  "oklch(0.6 0.22 350)",
+  "oklch(0.7 0.14 195)",
+  "oklch(0.55 0.2 285)",
+  "oklch(0.66 0.2 45)",
+  "oklch(0.55 0.04 257)",
+];
+
+function formatDateRange(start: string | null, end: string | null) {
+  if (start && end) {
+    return `Du ${formatIsoDate(start)} au ${formatIsoDate(end)}`;
+  }
+  return null;
+}
+
+function formatIsoDate(iso: string) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return new Intl.DateTimeFormat("fr-FR", { dateStyle: "long" }).format(d);
+}
+
+function positionValue(p: ExtractedPosition): number | null {
+  if (p.currentValue != null) return p.currentValue;
+  if (p.currentPrice != null) return p.currentPrice * p.quantity;
+  if (p.unitPrice != null) return p.unitPrice * p.quantity;
+  return null;
+}
+
+function positionInvested(p: ExtractedPosition): number | null {
+  if (p.unitPrice != null) return p.unitPrice * p.quantity;
+  return null;
+}
+
+function positionGainPct(p: ExtractedPosition): number | null {
+  if (p.gainPct != null) return p.gainPct;
+  const v = positionValue(p);
+  const inv = positionInvested(p);
+  if (v != null && inv != null && inv > 0) return (v - inv) / inv;
+  return null;
+}
+
+function StatementSummary({
+  statement,
+  positions,
+}: {
+  statement: ExtractedStatement;
+  positions: ExtractedPosition[];
+}) {
+  const baseCurrency =
+    statement.baseCurrency ?? positions[0]?.currency ?? "EUR";
+
+  // Derived totals when the doc didn't explicitly state them.
+  const computedValue = positions.reduce(
+    (s, p) => s + (positionValue(p) ?? 0),
+    0,
+  );
+  const computedInvested = positions.reduce(
+    (s, p) => s + (positionInvested(p) ?? 0),
+    0,
+  );
+  const value = statement.totalValue ?? computedValue;
+  const invested = statement.totalInvested ?? computedInvested;
+  const gain =
+    statement.totalGain ??
+    (value > 0 && invested > 0 ? value - invested : null);
+  const gainPct =
+    statement.totalGainPct ??
+    (gain != null && invested > 0 ? gain / invested : null);
+  const cashTotal = statement.cashBalances.reduce(
+    (s, c) => s + (c.amount ?? 0),
+    0,
+  );
+
+  const dateRange = formatDateRange(statement.periodStart, statement.periodEnd);
+
+  const isCompany = statement.holderType === "COMPANY";
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Building2 className="size-4" />
+          {statement.broker ?? "Relevé de portefeuille"}
+        </CardTitle>
+        {statement.holderName && (
+          <div className="bg-primary/5 border-primary/15 mt-2 flex items-center gap-2 rounded-lg border px-2.5 py-2">
+            {isCompany ? (
+              <Users className="text-primary size-4 shrink-0" />
+            ) : (
+              <User className="text-primary size-4 shrink-0" />
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="text-muted-foreground text-[10px] font-medium tracking-widest uppercase">
+                {isCompany ? "Société" : "Titulaire"}
+              </p>
+              <p className="truncate text-sm font-semibold">
+                {statement.holderName}
+              </p>
+            </div>
+            {statement.holderTaxId && (
+              <span className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-[10px] font-medium tabular-nums">
+                {statement.holderTaxId}
+              </span>
+            )}
+          </div>
+        )}
+        <CardDescription className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
+          {statement.accountType && (
+            <span className="bg-muted text-foreground rounded-md px-1.5 py-0.5 text-[11px] font-medium">
+              {statement.accountType}
+            </span>
+          )}
+          {statement.accountNumber && (
+            <span className="flex items-center gap-1 text-xs">
+              <Hash className="size-3" />
+              {statement.accountNumber}
+            </span>
+          )}
+          {statement.statementDate && (
+            <span className="flex items-center gap-1 text-xs">
+              <CalendarDays className="size-3" />
+              Arrêté du {formatIsoDate(statement.statementDate)}
+            </span>
+          )}
+          {dateRange && (
+            <span className="flex items-center gap-1 text-xs">
+              <CalendarDays className="size-3" />
+              {dateRange}
+            </span>
+          )}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-2 gap-3">
+          <Kpi
+            icon={<Wallet className="size-3.5" />}
+            label="Valeur totale"
+            value={formatCurrency(value, baseCurrency)}
+          />
+          <Kpi
+            icon={<Banknote className="size-3.5" />}
+            label="Investi"
+            value={formatCurrency(invested, baseCurrency)}
+          />
+          <Kpi
+            icon={
+              gain != null && gain >= 0 ? (
+                <TrendingUp className="size-3.5" />
+              ) : (
+                <TrendingDown className="size-3.5" />
+              )
+            }
+            label="+/- value latente"
+            value={gain != null ? formatCurrency(gain, baseCurrency) : "—"}
+            delta={gainPct != null ? formatPercent(gainPct) : undefined}
+            positive={gain != null && gain >= 0}
+          />
+          <Kpi
+            icon={<Banknote className="size-3.5" />}
+            label="Liquidités"
+            value={
+              cashTotal > 0 ? formatCurrency(cashTotal, baseCurrency) : "—"
+            }
+            delta={
+              statement.cashBalances.length > 1
+                ? `${statement.cashBalances.length} devises`
+                : undefined
+            }
+          />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function Kpi({
+  icon,
+  label,
+  value,
+  delta,
+  positive,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  delta?: string;
+  positive?: boolean;
+}) {
+  return (
+    <div className="border-border bg-card flex flex-col gap-1 rounded-lg border p-3">
+      <span className="text-muted-foreground flex items-center gap-1 text-[11px] font-medium tracking-wide uppercase">
+        {icon}
+        {label}
+      </span>
+      <span className="text-base font-semibold">{value}</span>
+      {delta && (
+        <span
+          className={
+            positive === undefined
+              ? "text-muted-foreground text-xs"
+              : positive
+                ? "text-success text-xs font-medium"
+                : "text-destructive text-xs font-medium"
+          }
+        >
+          {delta}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function PositionRow({
+  position,
+  weight,
+  baseCurrency,
+}: {
+  position: ExtractedPosition;
+  weight: number;
+  baseCurrency: string;
+}) {
+  const value = positionValue(position);
+  const invested = positionInvested(position);
+  const gainPct = positionGainPct(position);
+  const gainAmount =
+    position.gainAmount ??
+    (value != null && invested != null ? value - invested : null);
+  const type = position.type ?? "ACTION";
+
+  const subtitleParts = [
+    position.ticker,
+    position.isin,
+    ASSET_TYPE_LABELS[type] ?? type,
+  ].filter(Boolean) as string[];
+
+  const declaredWeight = position.weight ?? weight;
+
+  const stripe = TYPE_STRIPE[type] ?? TYPE_STRIPE.SECURISE;
+  return (
+    <li className="bg-card relative flex flex-col gap-2 overflow-hidden rounded-xl border px-3 py-3 pl-4">
+      <span
+        aria-hidden
+        className="absolute top-2 bottom-2 left-0 w-1 rounded-r-full"
+        style={{ backgroundColor: stripe }}
+      />
+      <div className="flex items-start gap-2">
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm leading-tight font-semibold">
+            {position.name}
+          </p>
+          <p className="text-muted-foreground mt-0.5 flex items-center gap-1.5 truncate text-[11px]">
+            <span
+              className="bg-muted rounded px-1 py-px text-[10px] font-medium tracking-wide uppercase"
+              style={{ color: stripe }}
+            >
+              {ASSET_TYPE_LABELS[type] ?? type}
+            </span>
+            {subtitleParts
+              .filter((s) => s !== (ASSET_TYPE_LABELS[type] ?? type))
+              .join(" · ")}
+          </p>
+        </div>
+        {gainPct != null && (
+          <span
+            className={
+              gainPct >= 0
+                ? "bg-success/10 text-success rounded-full px-2 py-0.5 text-xs font-semibold whitespace-nowrap tabular-nums"
+                : "bg-destructive/10 text-destructive rounded-full px-2 py-0.5 text-xs font-semibold whitespace-nowrap tabular-nums"
+            }
+          >
+            {gainPct >= 0 ? "+" : ""}
+            {(gainPct * 100).toFixed(2)}%
+          </span>
+        )}
+      </div>
+
+      {position.sector && (
+        <div>
+          <span className="bg-primary/10 text-primary inline-block rounded-full px-2 py-0.5 text-[10px] font-medium">
+            {position.sector}
+          </span>
+        </div>
+      )}
+
+      <div className="grid grid-cols-3 gap-2 text-xs">
+        <DataCell label="Quantité" value={formatNumber(position.quantity, 6)} />
+        <DataCell
+          label="PRU"
+          value={
+            position.unitPrice != null
+              ? formatCurrency(position.unitPrice, position.currency)
+              : "—"
+          }
+        />
+        <DataCell
+          label="Cours"
+          value={
+            position.currentPrice != null
+              ? formatCurrency(position.currentPrice, position.currency)
+              : "—"
+          }
+        />
+      </div>
+
+      <div className="grid grid-cols-3 gap-2 text-xs">
+        <DataCell
+          label="Valorisation"
+          value={value != null ? formatCurrency(value, position.currency) : "—"}
+          emphasis
+        />
+        <DataCell
+          label="+/- value"
+          value={
+            gainAmount != null
+              ? formatCurrency(gainAmount, position.currency)
+              : "—"
+          }
+          positive={gainAmount != null ? gainAmount >= 0 : undefined}
+        />
+        <DataCell
+          label="Rendement"
+          value={
+            position.dividendYield != null
+              ? formatPercent(position.dividendYield)
+              : "—"
+          }
+        />
+      </div>
+
+      {declaredWeight > 0 && (
+        <div className="flex items-center gap-2">
+          <div className="bg-muted relative h-1.5 flex-1 overflow-hidden rounded-full">
+            <div
+              className="bg-primary h-full rounded-full"
+              style={{ width: `${Math.min(100, declaredWeight * 100)}%` }}
+            />
+          </div>
+          <span className="text-muted-foreground w-12 text-right text-[11px] tabular-nums">
+            {(declaredWeight * 100).toFixed(1)}%
+          </span>
+        </div>
+      )}
+
+      {position.currency !== baseCurrency && (
+        <p className="text-muted-foreground text-[11px]">
+          Devise {position.currency} · convertie en {baseCurrency} à
+          l&apos;import
+        </p>
+      )}
+    </li>
+  );
+}
+
+function DataCell({
+  label,
+  value,
+  emphasis,
+  positive,
+}: {
+  label: string;
+  value: string;
+  emphasis?: boolean;
+  positive?: boolean;
+}) {
+  return (
+    <div className="flex flex-col">
+      <span className="text-muted-foreground text-[10px] tracking-wide uppercase">
+        {label}
+      </span>
+      <span
+        className={
+          positive === undefined
+            ? emphasis
+              ? "text-sm font-semibold"
+              : "font-medium"
+            : positive
+              ? "text-success font-medium"
+              : "text-destructive font-medium"
+        }
+      >
+        {value}
+      </span>
+    </div>
+  );
+}
 
 export default function ImportPortfolioPage() {
   const router = useRouter();
@@ -29,22 +455,68 @@ export default function ImportPortfolioPage() {
   const [file, setFile] = useState<File | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [importing, setImporting] = useState(false);
-  const [proposed, setProposed] = useState<ExtractedPosition[] | null>(null);
+  const [extracted, setExtracted] = useState<ExtractedPortfolio | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const positions = useMemo(() => extracted?.positions ?? [], [extracted]);
+  const statement = extracted?.statement;
+  const baseCurrency =
+    statement?.baseCurrency ?? positions[0]?.currency ?? "EUR";
+
+  const totalValue = useMemo(
+    () => positions.reduce((s, p) => s + (positionValue(p) ?? 0), 0),
+    [positions],
+  );
+
+  const sectorBreakdown = useMemo<AllocationSlice[]>(() => {
+    const by: Record<string, number> = {};
+    let classified = 0;
+    for (const p of positions) {
+      const value = positionValue(p) ?? 0;
+      if (value <= 0 || !p.sector) continue;
+      by[p.sector] = (by[p.sector] ?? 0) + value;
+      classified += value;
+    }
+    void classified;
+    return Object.entries(by)
+      .sort((a, b) => b[1] - a[1])
+      .map(([label, value], i) => ({
+        label,
+        value,
+        color: SECTOR_COLORS[i % SECTOR_COLORS.length],
+      }));
+  }, [positions]);
+
+  const typeBreakdown = useMemo<AllocationSlice[]>(() => {
+    const by: Record<string, number> = {};
+    for (const p of positions) {
+      const value = positionValue(p) ?? 0;
+      if (value <= 0) continue;
+      const k = p.type ?? "ACTION";
+      by[k] = (by[k] ?? 0) + value;
+    }
+    return Object.entries(by)
+      .sort((a, b) => b[1] - a[1])
+      .map(([label, value], i) => ({
+        label: ASSET_TYPE_LABELS[label] ?? label,
+        value,
+        color: SECTOR_COLORS[i % SECTOR_COLORS.length],
+      }));
+  }, [positions]);
 
   async function handleAnalyze() {
     if (!file) return;
     setAnalyzing(true);
     setError(null);
-    setProposed(null);
+    setExtracted(null);
     try {
       const formData = new FormData();
       formData.append("file", file);
       const result = await extractPortfolio(formData);
-      if (result.length === 0) {
+      if (result.positions.length === 0) {
         setError("Aucune position détectée dans le fichier.");
       } else {
-        setProposed(result);
+        setExtracted(result);
       }
     } catch {
       setError("L'analyse IA a échoué.");
@@ -53,11 +525,34 @@ export default function ImportPortfolioPage() {
   }
 
   async function handleImport() {
-    if (!proposed) return;
+    if (!extracted) return;
     setImporting(true);
     setError(null);
     try {
-      await importPortfolio(proposed);
+      await importPortfolio(
+        extracted.positions.map((p) => ({
+          name: p.name,
+          ticker: p.ticker,
+          isin: p.isin,
+          type: p.type,
+          quantity: p.quantity,
+          unitPrice: p.unitPrice,
+          currentPrice: p.currentPrice,
+          currency: p.currency,
+          date: p.date,
+        })),
+        {
+          cashBalances: extracted.statement.cashBalances.map((c) => ({
+            currency: c.currency,
+            amount: c.amount,
+          })),
+          holder: {
+            holderName: extracted.statement.holderName,
+            holderType: extracted.statement.holderType,
+            holderTaxId: extracted.statement.holderTaxId,
+          },
+        },
+      );
       router.push("/dashboard");
       router.refresh();
     } catch {
@@ -83,8 +578,8 @@ export default function ImportPortfolioPage() {
         <CardHeader>
           <CardTitle className="text-base">Fichier broker</CardTitle>
           <CardDescription>
-            Relevé de positions (Excel, CSV ou PDF). L&apos;IA détecte toutes
-            les lignes, crée les actifs manquants et enregistre les achats.
+            Relevé de positions (Excel, CSV ou PDF). L&apos;IA extrait
+            métadonnées, positions, valorisation et liquidités.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
@@ -103,69 +598,118 @@ export default function ImportPortfolioPage() {
         </CardContent>
       </Card>
 
-      {proposed && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">
-              {proposed.length} position{proposed.length > 1 ? "s" : ""}{" "}
-              détectée{proposed.length > 1 ? "s" : ""}
-            </CardTitle>
-            <CardDescription>
-              Vérifie la liste, puis lance l&apos;import.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            <ul className="flex flex-col gap-2">
-              {proposed.map((position, index) => (
-                <li
-                  key={`${position.isin ?? position.ticker ?? position.name}-${index}`}
-                  className="bg-card flex items-center justify-between gap-3 rounded-lg border px-3 py-2"
+      {extracted && statement && (
+        <>
+          <StatementSummary statement={statement} positions={positions} />
+
+          {statement.cashBalances.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Wallet className="size-4" />
+                  Liquidités détectées
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-2">
+                {statement.cashBalances.map((cash) => (
+                  <div
+                    key={cash.currency}
+                    className="bg-card flex items-center justify-between rounded-lg border px-3 py-2 text-sm"
+                  >
+                    <span className="font-medium">{cash.currency}</span>
+                    <span className="font-semibold">
+                      {formatCurrency(cash.amount, cash.currency)}
+                    </span>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
+          {typeBreakdown.length > 1 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">
+                  Répartition par classe
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <AllocationChart data={typeBreakdown} total={totalValue} />
+              </CardContent>
+            </Card>
+          )}
+
+          {sectorBreakdown.length > 1 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">
+                  Exposition sectorielle
+                </CardTitle>
+                <CardDescription>
+                  D&apos;après les libellés présents dans le document.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <AllocationChart
+                  data={sectorBreakdown}
+                  total={sectorBreakdown.reduce((s, x) => s + x.value, 0)}
+                />
+              </CardContent>
+            </Card>
+          )}
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">
+                {positions.length} position{positions.length > 1 ? "s" : ""}
+              </CardTitle>
+              <CardDescription>
+                Vérifie la liste avant d&apos;importer dans ton portefeuille.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-3">
+              <ul className="flex flex-col gap-2">
+                {positions.map((position, index) => {
+                  const value = positionValue(position) ?? 0;
+                  const weight = totalValue > 0 ? value / totalValue : 0;
+                  return (
+                    <PositionRow
+                      key={`${position.isin ?? position.ticker ?? position.name}-${index}`}
+                      position={position}
+                      weight={weight}
+                      baseCurrency={baseCurrency}
+                    />
+                  );
+                })}
+              </ul>
+              <div className="bg-muted/30 sticky bottom-2 flex gap-2 rounded-lg p-2 backdrop-blur">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setExtracted(null)}
+                  disabled={importing}
                 >
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">
-                      {position.name}
-                    </p>
-                    <p className="text-muted-foreground truncate text-xs">
-                      {[position.ticker, position.isin, position.type]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-medium">
-                      {formatNumber(position.quantity, 6)} u.
-                    </p>
-                    {position.unitPrice != null && (
-                      <p className="text-muted-foreground text-xs">
-                        {formatCurrency(position.unitPrice, position.currency)}
-                      </p>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                className="flex-1"
-                onClick={() => setProposed(null)}
-                disabled={importing}
-              >
-                Annuler
-              </Button>
-              <Button
-                type="button"
-                className="flex-1"
-                onClick={handleImport}
-                disabled={importing}
-              >
-                {importing ? <Loader2 className="animate-spin" /> : <Upload />}
-                Importer
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+                  Annuler
+                </Button>
+                <Button
+                  type="button"
+                  className="flex-1"
+                  onClick={handleImport}
+                  disabled={importing}
+                >
+                  {importing ? (
+                    <Loader2 className="animate-spin" />
+                  ) : (
+                    <Upload />
+                  )}
+                  Importer {positions.length} position
+                  {positions.length > 1 ? "s" : ""}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </>
       )}
     </div>
   );

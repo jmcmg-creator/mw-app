@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/auth";
-import { getDefaultPortfolio } from "@/lib/portfolio";
+import { getActivePortfolio } from "@/lib/portfolio";
 import type { Currency } from "@/generated/prisma/enums";
 
 /** Sets (creates or updates) the cash balance for a currency. */
@@ -11,7 +11,7 @@ export async function setCashBalance(
   amount: number,
 ): Promise<void> {
   const userId = await requireUserId();
-  const portfolio = await getDefaultPortfolio(userId);
+  const portfolio = await getActivePortfolio(userId);
 
   await prisma.cashBalance.upsert({
     where: {

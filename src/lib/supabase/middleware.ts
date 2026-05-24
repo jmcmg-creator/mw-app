@@ -1,6 +1,11 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+// Keep the browser cookie alive for 30 days, sliding (every request refreshes
+// it). Without an explicit maxAge, @supabase/ssr emits session cookies that
+// disappear when the user closes the browser.
+const SESSION_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
+
 /**
  * Refreshes the Supabase auth session on every request and exposes the
  * current user. Keep no logic between createServerClient and getUser().
@@ -22,7 +27,10 @@ export async function updateSession(request: NextRequest) {
           }
           response = NextResponse.next({ request });
           for (const { name, value, options } of cookiesToSet) {
-            response.cookies.set(name, value, options);
+            response.cookies.set(name, value, {
+              ...options,
+              maxAge: options?.maxAge ?? SESSION_COOKIE_MAX_AGE_SECONDS,
+            });
           }
         },
       },

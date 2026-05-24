@@ -1,0 +1,1597 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Patrimoine — Preview</title>
+    <style>
+      :root {
+        --background: oklch(1 0 0);
+        --foreground: oklch(0.129 0.042 264.695);
+        --card: oklch(1 0 0);
+        --muted: oklch(0.968 0.007 247.896);
+        --muted-foreground: oklch(0.554 0.046 257.417);
+        --border: oklch(0.929 0.013 255.508);
+        --primary: oklch(0.208 0.042 265.755);
+        --primary-foreground: oklch(0.984 0.003 247.858);
+        --success: oklch(0.627 0.17 149.214);
+        --destructive: oklch(0.577 0.245 27.325);
+        --warning: oklch(0.769 0.188 70.08);
+        --accent: oklch(0.968 0.007 247.896);
+        --popover: oklch(1 0 0);
+
+        --c-action: oklch(0.55 0.18 264);
+        --c-etf: oklch(0.65 0.16 162);
+        --c-oblig: oklch(0.75 0.16 70);
+        --c-struct: oklch(0.6 0.2 303);
+        --c-immo: oklch(0.65 0.13 184);
+        --c-cash: oklch(0.7 0.16 130);
+
+        --radius: 0.625rem;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto,
+          sans-serif;
+        background:
+          radial-gradient(
+            circle at 0% 0%,
+            oklch(0.95 0.04 264) 0%,
+            transparent 40%
+          ),
+          radial-gradient(
+            circle at 100% 100%,
+            oklch(0.95 0.04 150) 0%,
+            transparent 40%
+          ),
+          oklch(0.985 0.005 247);
+        color: var(--foreground);
+        min-height: 100dvh;
+        -webkit-font-smoothing: antialiased;
+        font-feature-settings: "cv11", "ss01";
+      }
+      .container {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 32px 20px 80px;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 24px;
+      }
+      @media (min-width: 900px) {
+        .container {
+          grid-template-columns: repeat(2, 1fr);
+          gap: 28px;
+        }
+      }
+      h1.page-title {
+        grid-column: 1 / -1;
+        margin: 0;
+        font-size: 28px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+      h1.page-title small {
+        display: block;
+        margin-top: 4px;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--muted-foreground);
+      }
+      .screen {
+        background: var(--background);
+        border-radius: 28px;
+        border: 1px solid var(--border);
+        box-shadow:
+          0 1px 2px rgba(15, 23, 42, 0.04),
+          0 30px 60px -30px rgba(15, 23, 42, 0.18);
+        overflow: hidden;
+      }
+      .screen-label {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 22px;
+        background: linear-gradient(
+          180deg,
+          oklch(0.98 0.005 247) 0%,
+          transparent 100%
+        );
+        border-bottom: 1px solid var(--border);
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--muted-foreground);
+      }
+      .screen-body {
+        padding: 22px;
+        display: flex;
+        flex-direction: column;
+        gap: 22px;
+      }
+
+      /* === Header bar (logo + switcher + sign out) === */
+      .app-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+      .app-logo {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+      .logo-mark {
+        width: 32px;
+        height: 32px;
+        background: var(--primary);
+        color: var(--primary-foreground);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .switcher {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border: 1px solid var(--border);
+        background: var(--card);
+        border-radius: 999px;
+        padding: 5px 10px 5px 10px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .icon {
+        width: 14px;
+        height: 14px;
+        color: var(--muted-foreground);
+        flex-shrink: 0;
+      }
+      .iconbtn {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        background: var(--muted);
+        color: var(--muted-foreground);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+      }
+
+      /* === Typography === */
+      .label {
+        font-size: 10px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        color: var(--muted-foreground);
+      }
+      .display {
+        font-size: 40px;
+        font-weight: 700;
+        letter-spacing: -0.025em;
+        font-variant-numeric: tabular-nums;
+        line-height: 1.05;
+      }
+      .display-md {
+        font-size: 28px;
+      }
+      .nums {
+        font-variant-numeric: tabular-nums;
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 9px;
+        font-size: 12px;
+        font-weight: 600;
+        border-radius: 999px;
+        font-variant-numeric: tabular-nums;
+      }
+      .pill-up {
+        background: color-mix(in oklch, var(--success) 12%, transparent);
+        color: var(--success);
+      }
+      .pill-down {
+        background: color-mix(in oklch, var(--destructive) 12%, transparent);
+        color: var(--destructive);
+      }
+      .pill-soft {
+        background: color-mix(in oklch, var(--primary) 10%, transparent);
+        color: var(--primary);
+      }
+      .pill-muted {
+        background: var(--muted);
+        color: var(--muted-foreground);
+      }
+
+      /* === Cards === */
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 16px;
+      }
+      .card-tight {
+        padding: 14px;
+      }
+      .card-title {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--foreground);
+      }
+      .card-description {
+        font-size: 12px;
+        color: var(--muted-foreground);
+        margin-top: 2px;
+      }
+      .grid-2 {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+      }
+      .grid-3 {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+      }
+      .grid-4 {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+      }
+
+      /* === KPI cell === */
+      .kpi {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        padding: 12px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+      }
+      .kpi-value {
+        font-size: 16px;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -0.02em;
+      }
+      .kpi-delta-up {
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--success);
+        font-variant-numeric: tabular-nums;
+      }
+      .kpi-delta-down {
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--destructive);
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* === Hero chart === */
+      .hero-head {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .segctrl {
+        background: color-mix(in oklch, var(--muted) 80%, transparent);
+        border-radius: 10px;
+        padding: 2px;
+        display: inline-flex;
+        gap: 2px;
+      }
+      .segctrl button {
+        padding: 5px 10px;
+        font-size: 11px;
+        font-weight: 600;
+        border: none;
+        background: transparent;
+        color: var(--muted-foreground);
+        border-radius: 7px;
+        cursor: pointer;
+      }
+      .segctrl button.active {
+        background: var(--card);
+        color: var(--foreground);
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+      }
+
+      /* === Holding row === */
+      .row {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 12px 12px 16px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        overflow: hidden;
+        text-decoration: none;
+        color: inherit;
+      }
+      .row .stripe {
+        position: absolute;
+        top: 8px;
+        bottom: 8px;
+        left: 0;
+        width: 4px;
+        border-radius: 0 4px 4px 0;
+      }
+      .row .row-main {
+        flex: 1;
+        min-width: 0;
+      }
+      .row .row-title {
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .row .row-sub {
+        font-size: 11px;
+        color: var(--muted-foreground);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 2px;
+      }
+      .row .row-sub .type-tag {
+        background: var(--muted);
+        padding: 1px 5px;
+        border-radius: 4px;
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .row .row-value {
+        text-align: right;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+      }
+      .row .row-value-main {
+        font-size: 14px;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+      }
+      .row .row-value-sub-up {
+        font-size: 11px;
+        color: var(--success);
+        font-weight: 500;
+        font-variant-numeric: tabular-nums;
+      }
+      .row .row-value-sub-down {
+        font-size: 11px;
+        color: var(--destructive);
+        font-weight: 500;
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* === Donut === */
+      .alloc {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .donut-wrap {
+        position: relative;
+        width: 140px;
+        height: 140px;
+        margin: 0 auto;
+      }
+      .donut-center {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+      }
+      .donut-center .label {
+        font-size: 9px;
+      }
+      .donut-center .v {
+        font-size: 16px;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        font-variant-numeric: tabular-nums;
+        margin-top: 1px;
+      }
+      .legend {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .legend-row {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .legend-row .top {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+      }
+      .legend-row .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+      .legend-row .label-text {
+        flex: 1;
+        font-weight: 500;
+      }
+      .legend-row .pct {
+        color: var(--muted-foreground);
+        font-variant-numeric: tabular-nums;
+      }
+      .bar {
+        background: var(--muted);
+        height: 4px;
+        border-radius: 2px;
+        overflow: hidden;
+      }
+      .bar > .fill {
+        height: 100%;
+        border-radius: 2px;
+      }
+
+      /* === Concentration === */
+      .conc-row {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .conc-row .top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 13px;
+      }
+      .conc-row .num {
+        background: var(--muted);
+        color: var(--muted-foreground);
+        width: 20px;
+        height: 20px;
+        border-radius: 6px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        font-weight: 700;
+      }
+
+      /* === Fundamentals === */
+      .fund-card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .metric {
+        background: color-mix(in oklch, var(--muted) 65%, transparent);
+        padding: 8px 10px;
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+      }
+      .metric .label {
+        font-size: 9px;
+      }
+      .metric .v {
+        font-size: 13px;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+      }
+      .metric .v.up {
+        color: var(--success);
+      }
+      .metric .v.down {
+        color: var(--destructive);
+      }
+
+      /* === Import card === */
+      .holder-block {
+        background: color-mix(in oklch, var(--primary) 5%, transparent);
+        border: 1px solid color-mix(in oklch, var(--primary) 15%, transparent);
+        border-radius: 10px;
+        padding: 10px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 8px;
+      }
+      .holder-block .icon {
+        color: var(--primary);
+        width: 18px;
+        height: 18px;
+      }
+      .holder-block .name {
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .meta-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 10px;
+        font-size: 12px;
+        color: var(--muted-foreground);
+      }
+      .meta-chips > * {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .meta-chip {
+        background: var(--muted);
+        color: var(--foreground);
+        padding: 2px 7px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 600;
+      }
+      .footer-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      .btn {
+        padding: 10px;
+        font-weight: 600;
+        font-size: 13px;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: var(--card);
+        color: var(--foreground);
+        cursor: pointer;
+      }
+      .btn.primary {
+        background: var(--primary);
+        color: var(--primary-foreground);
+        border-color: var(--primary);
+      }
+
+      .section-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        padding: 0 4px;
+      }
+      .section-head h3 {
+        font-size: 12px;
+        font-weight: 600;
+        margin: 0;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--muted-foreground);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .section-head .count {
+        font-size: 11px;
+        color: var(--muted-foreground);
+        font-variant-numeric: tabular-nums;
+      }
+      .stack {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1 class="page-title">
+        Patrimoine — Preview
+        <small
+          >Mockup statique avec fausses données — ouvert localement, aucun
+          login. Données et SVG inline.</small
+        >
+      </h1>
+
+      <!-- ============================================================ -->
+      <!-- DASHBOARD                                                     -->
+      <!-- ============================================================ -->
+      <section class="screen">
+        <div class="screen-label">
+          <span>Dashboard · /dashboard</span>
+          <span>iPhone 14 Pro · 393×852</span>
+        </div>
+        <div class="screen-body">
+          <!-- App header -->
+          <div class="app-header">
+            <div class="app-logo">
+              <div class="logo-mark">
+                <!-- wallet icon -->
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    d="M21 12V7H5a2 2 0 0 1 0-4h14v4"
+                  ></path>
+                  <path d="M3 5v14a2 2 0 0 0 2 2h16v-5"></path>
+                  <path d="M18 12a2 2 0 0 0 0 4h4v-4Z"></path>
+                </svg>
+              </div>
+              <span>Patrimoine</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px">
+              <button class="switcher">
+                <svg
+                  class="icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <circle cx="12" cy="8" r="4"></circle>
+                  <path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"></path>
+                </svg>
+                <span>Jean Dupont</span>
+                <svg
+                  class="icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  style="width: 11px; height: 11px"
+                >
+                  <path d="m7 15 5 5 5-5"></path>
+                  <path d="m7 9 5-5 5 5"></path>
+                </svg>
+              </button>
+              <button class="iconbtn" title="Déconnexion">
+                <svg
+                  class="icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                  <polyline points="16 17 21 12 16 7"></polyline>
+                  <line x1="21" y1="12" x2="9" y2="12"></line>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Hero patrimoine -->
+          <div>
+            <div
+              style="
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                margin-bottom: 6px;
+              "
+            >
+              <span class="label">Patrimoine total</span>
+              <span class="pill pill-soft">Jean Dupont</span>
+              <span class="label" style="text-transform: none; letter-spacing: 0">
+                · 3 portefeuilles
+              </span>
+            </div>
+            <div class="display">523 480 €</div>
+            <div
+              style="
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                margin-top: 8px;
+              "
+            >
+              <span class="pill pill-up">▲ 12,4 %</span>
+              <span class="nums" style="font-size: 12px; color: var(--muted-foreground)">
+                +57 920 €
+              </span>
+            </div>
+          </div>
+
+          <!-- Quick actions -->
+          <div class="grid-2">
+            <button class="btn">📊 Analyse</button>
+            <button class="btn">⬆️ Importer</button>
+          </div>
+
+          <!-- Allocation -->
+          <div class="card">
+            <div class="card-title">Répartition</div>
+            <div class="alloc" style="margin-top: 14px">
+              <div class="donut-wrap">
+                <svg viewBox="0 0 36 36" width="140" height="140">
+                  <circle
+                    cx="18"
+                    cy="18"
+                    r="14"
+                    fill="none"
+                    stroke="var(--muted)"
+                    stroke-width="4"
+                  />
+                  <!-- Slices: 45% Action, 25% ETF, 15% Immo, 10% Structuré, 5% Cash -->
+                  <circle
+                    cx="18"
+                    cy="18"
+                    r="14"
+                    fill="none"
+                    stroke="var(--c-action)"
+                    stroke-width="4"
+                    stroke-dasharray="39.6 88"
+                    stroke-dashoffset="0"
+                    transform="rotate(-90 18 18)"
+                    style="stroke-linecap: butt"
+                  />
+                  <circle
+                    cx="18"
+                    cy="18"
+                    r="14"
+                    fill="none"
+                    stroke="var(--c-etf)"
+                    stroke-width="4"
+                    stroke-dasharray="22 88"
+                    stroke-dashoffset="-39.6"
+                    transform="rotate(-90 18 18)"
+                  />
+                  <circle
+                    cx="18"
+                    cy="18"
+                    r="14"
+                    fill="none"
+                    stroke="var(--c-immo)"
+                    stroke-width="4"
+                    stroke-dasharray="13.2 88"
+                    stroke-dashoffset="-61.6"
+                    transform="rotate(-90 18 18)"
+                  />
+                  <circle
+                    cx="18"
+                    cy="18"
+                    r="14"
+                    fill="none"
+                    stroke="var(--c-struct)"
+                    stroke-width="4"
+                    stroke-dasharray="8.8 88"
+                    stroke-dashoffset="-74.8"
+                    transform="rotate(-90 18 18)"
+                  />
+                  <circle
+                    cx="18"
+                    cy="18"
+                    r="14"
+                    fill="none"
+                    stroke="var(--c-cash)"
+                    stroke-width="4"
+                    stroke-dasharray="4.4 88"
+                    stroke-dashoffset="-83.6"
+                    transform="rotate(-90 18 18)"
+                  />
+                </svg>
+                <div class="donut-center">
+                  <span class="label">Total</span>
+                  <span class="v">523 k €</span>
+                </div>
+              </div>
+              <div class="legend">
+                <!-- 45% Actions -->
+                <div class="legend-row">
+                  <div class="top">
+                    <span
+                      class="dot"
+                      style="background: var(--c-action)"
+                    ></span>
+                    <span class="label-text">Action</span>
+                    <span class="pct">45 %</span>
+                  </div>
+                  <div class="bar">
+                    <div
+                      class="fill"
+                      style="width: 45%; background: var(--c-action)"
+                    ></div>
+                  </div>
+                </div>
+                <div class="legend-row">
+                  <div class="top">
+                    <span class="dot" style="background: var(--c-etf)"></span>
+                    <span class="label-text">ETF</span>
+                    <span class="pct">25 %</span>
+                  </div>
+                  <div class="bar">
+                    <div
+                      class="fill"
+                      style="width: 25%; background: var(--c-etf)"
+                    ></div>
+                  </div>
+                </div>
+                <div class="legend-row">
+                  <div class="top">
+                    <span class="dot" style="background: var(--c-immo)"></span>
+                    <span class="label-text">Immobilier</span>
+                    <span class="pct">15 %</span>
+                  </div>
+                  <div class="bar">
+                    <div
+                      class="fill"
+                      style="width: 15%; background: var(--c-immo)"
+                    ></div>
+                  </div>
+                </div>
+                <div class="legend-row">
+                  <div class="top">
+                    <span class="dot" style="background: var(--c-struct)"></span>
+                    <span class="label-text">Produit structuré</span>
+                    <span class="pct">10 %</span>
+                  </div>
+                  <div class="bar">
+                    <div
+                      class="fill"
+                      style="width: 10%; background: var(--c-struct)"
+                    ></div>
+                  </div>
+                </div>
+                <div class="legend-row">
+                  <div class="top">
+                    <span class="dot" style="background: var(--c-cash)"></span>
+                    <span class="label-text">Liquidités</span>
+                    <span class="pct">5 %</span>
+                  </div>
+                  <div class="bar">
+                    <div
+                      class="fill"
+                      style="width: 5%; background: var(--c-cash)"
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Marchés -->
+          <div>
+            <div class="section-head" style="margin-bottom: 8px">
+              <h3>📈 Marchés <span class="count">4</span></h3>
+            </div>
+            <div class="stack">
+              <!-- Row: ASML -->
+              <a class="row">
+                <span
+                  class="stripe"
+                  style="background: var(--c-action)"
+                ></span>
+                <div class="row-main">
+                  <div class="row-title">ASML Holding</div>
+                  <div class="row-sub">
+                    <span class="type-tag" style="color: var(--c-action)">
+                      Action
+                    </span>
+                    <span>ASML.AS</span>
+                  </div>
+                </div>
+                <svg width="88" height="32" viewBox="0 0 88 32">
+                  <defs>
+                    <linearGradient id="sg-up-1" x1="0" y1="0" x2="0" y2="1">
+                      <stop
+                        offset="0%"
+                        stop-color="var(--success)"
+                        stop-opacity="0.28"
+                      />
+                      <stop
+                        offset="100%"
+                        stop-color="var(--success)"
+                        stop-opacity="0"
+                      />
+                    </linearGradient>
+                  </defs>
+                  <path
+                    d="M0,22 C10,18 20,24 30,20 C40,17 50,12 60,9 C70,6 80,4 88,2 L88,32 L0,32 Z"
+                    fill="url(#sg-up-1)"
+                  />
+                  <path
+                    d="M0,22 C10,18 20,24 30,20 C40,17 50,12 60,9 C70,6 80,4 88,2"
+                    fill="none"
+                    stroke="var(--success)"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                  <circle cx="88" cy="2" r="4.5" fill="var(--success)" fill-opacity="0.18" />
+                  <circle cx="88" cy="2" r="2.2" fill="var(--success)" />
+                </svg>
+                <div class="row-value">
+                  <span class="row-value-main">142 850 €</span>
+                  <span class="row-value-sub-up">+34,2 %</span>
+                </div>
+              </a>
+              <!-- Row: ETF MSCI World -->
+              <a class="row">
+                <span class="stripe" style="background: var(--success)"></span>
+                <div class="row-main">
+                  <div class="row-title">iShares Core MSCI World</div>
+                  <div class="row-sub">
+                    <span class="type-tag" style="color: var(--success)">ETF</span>
+                    <span>IWDA.AS</span>
+                  </div>
+                </div>
+                <svg width="88" height="32" viewBox="0 0 88 32">
+                  <defs>
+                    <linearGradient id="sg-up-2" x1="0" y1="0" x2="0" y2="1">
+                      <stop
+                        offset="0%"
+                        stop-color="var(--success)"
+                        stop-opacity="0.28"
+                      />
+                      <stop
+                        offset="100%"
+                        stop-color="var(--success)"
+                        stop-opacity="0"
+                      />
+                    </linearGradient>
+                  </defs>
+                  <path
+                    d="M0,24 C10,22 20,21 30,19 C40,17 50,15 60,13 C70,11 80,9 88,7 L88,32 L0,32 Z"
+                    fill="url(#sg-up-2)"
+                  />
+                  <path
+                    d="M0,24 C10,22 20,21 30,19 C40,17 50,15 60,13 C70,11 80,9 88,7"
+                    fill="none"
+                    stroke="var(--success)"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                  <circle cx="88" cy="7" r="4.5" fill="var(--success)" fill-opacity="0.18" />
+                  <circle cx="88" cy="7" r="2.2" fill="var(--success)" />
+                </svg>
+                <div class="row-value">
+                  <span class="row-value-main">98 320 €</span>
+                  <span class="row-value-sub-up">+18,7 %</span>
+                </div>
+              </a>
+              <!-- Row: LVMH (down) -->
+              <a class="row">
+                <span class="stripe" style="background: var(--c-action)"></span>
+                <div class="row-main">
+                  <div class="row-title">LVMH</div>
+                  <div class="row-sub">
+                    <span class="type-tag" style="color: var(--c-action)">
+                      Action
+                    </span>
+                    <span>MC.PA</span>
+                  </div>
+                </div>
+                <svg width="88" height="32" viewBox="0 0 88 32">
+                  <defs>
+                    <linearGradient id="sg-dn-1" x1="0" y1="0" x2="0" y2="1">
+                      <stop
+                        offset="0%"
+                        stop-color="var(--destructive)"
+                        stop-opacity="0.28"
+                      />
+                      <stop
+                        offset="100%"
+                        stop-color="var(--destructive)"
+                        stop-opacity="0"
+                      />
+                    </linearGradient>
+                  </defs>
+                  <path
+                    d="M0,6 C10,9 20,7 30,12 C40,15 50,18 60,22 C70,24 80,25 88,26 L88,32 L0,32 Z"
+                    fill="url(#sg-dn-1)"
+                  />
+                  <path
+                    d="M0,6 C10,9 20,7 30,12 C40,15 50,18 60,22 C70,24 80,25 88,26"
+                    fill="none"
+                    stroke="var(--destructive)"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                  <circle cx="88" cy="26" r="4.5" fill="var(--destructive)" fill-opacity="0.18" />
+                  <circle cx="88" cy="26" r="2.2" fill="var(--destructive)" />
+                </svg>
+                <div class="row-value">
+                  <span class="row-value-main">42 100 €</span>
+                  <span class="row-value-sub-down">−8,4 %</span>
+                </div>
+              </a>
+              <!-- Row: Structuré -->
+              <a class="row">
+                <span class="stripe" style="background: var(--c-struct)"></span>
+                <div class="row-main">
+                  <div class="row-title">Phoenix Mémoire Stoxx 50</div>
+                  <div class="row-sub">
+                    <span class="type-tag" style="color: var(--c-struct)">
+                      Produit structuré
+                    </span>
+                    <span>SX5E</span>
+                  </div>
+                </div>
+                <div class="row-value">
+                  <span class="row-value-main">50 000 €</span>
+                  <span class="row-value-sub-up">+5,0 %</span>
+                </div>
+              </a>
+            </div>
+          </div>
+
+          <!-- Immo -->
+          <div>
+            <div class="section-head" style="margin-bottom: 8px">
+              <h3>🏢 Immobilier <span class="count">1</span></h3>
+            </div>
+            <a class="row" style="padding-left: 14px">
+              <div class="row-main">
+                <div class="row-title">Appartement Paris XI</div>
+                <div class="row-sub">
+                  <span>Appartement LCD · 38 m²</span>
+                </div>
+              </div>
+              <span class="row-value-main">485 000 €</span>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- ANALYSE                                                       -->
+      <!-- ============================================================ -->
+      <section class="screen">
+        <div class="screen-label">
+          <span>Analyse · /analyse</span>
+          <span>Hero chart · KPIs · Allocations · Fondamentaux</span>
+        </div>
+        <div class="screen-body">
+          <!-- Hero chart -->
+          <div class="card">
+            <div class="hero-head">
+              <div>
+                <div class="label">Patrimoine</div>
+                <div class="display display-md">523 480 €</div>
+                <div
+                  style="
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    margin-top: 6px;
+                  "
+                >
+                  <span class="pill pill-up">▲ 12,4 %</span>
+                  <span
+                    class="nums"
+                    style="font-size: 12px; color: var(--muted-foreground)"
+                  >
+                    +57 920 €
+                  </span>
+                </div>
+              </div>
+              <div class="segctrl">
+                <button class="active">1A</button>
+                <button>3A</button>
+                <button>5A</button>
+              </div>
+            </div>
+
+            <!-- Area chart -->
+            <svg
+              viewBox="0 0 480 180"
+              width="100%"
+              height="180"
+              style="margin-top: 16px; display: block"
+            >
+              <defs>
+                <linearGradient id="hero-fill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="var(--success)" stop-opacity="0.35" />
+                  <stop offset="100%" stop-color="var(--success)" stop-opacity="0" />
+                </linearGradient>
+              </defs>
+              <!-- subtle grid -->
+              <line x1="0" y1="45" x2="480" y2="45" stroke="var(--border)" stroke-dasharray="2 4" />
+              <line x1="0" y1="90" x2="480" y2="90" stroke="var(--border)" stroke-dasharray="2 4" />
+              <line x1="0" y1="135" x2="480" y2="135" stroke="var(--border)" stroke-dasharray="2 4" />
+              <path
+                d="M0,140 C40,135 80,125 120,128 C160,131 200,118 240,100 C280,90 320,82 360,68 C400,55 440,42 480,28 L480,180 L0,180 Z"
+                fill="url(#hero-fill)"
+              />
+              <path
+                d="M0,140 C40,135 80,125 120,128 C160,131 200,118 240,100 C280,90 320,82 360,68 C400,55 440,42 480,28"
+                fill="none"
+                stroke="var(--success)"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <circle cx="480" cy="28" r="6" fill="var(--success)" fill-opacity="0.2" />
+              <circle cx="480" cy="28" r="3" fill="var(--success)" />
+              <!-- x labels -->
+              <text x="0" y="178" font-size="9" fill="var(--muted-foreground)">juin 25</text>
+              <text x="115" y="178" font-size="9" fill="var(--muted-foreground)">sept 25</text>
+              <text x="230" y="178" font-size="9" fill="var(--muted-foreground)">déc 25</text>
+              <text x="345" y="178" font-size="9" fill="var(--muted-foreground)">mars 26</text>
+              <text x="450" y="178" font-size="9" fill="var(--muted-foreground)">mai 26</text>
+            </svg>
+          </div>
+
+          <!-- KPI strip -->
+          <div class="grid-4">
+            <div class="kpi">
+              <span class="label">Investi</span>
+              <span class="kpi-value">465 560 €</span>
+            </div>
+            <div class="kpi">
+              <span class="label">+/- value</span>
+              <span class="kpi-value">+57 920 €</span>
+              <span class="kpi-delta-up">+12,4 %</span>
+            </div>
+            <div class="kpi">
+              <span class="label">Dividendes</span>
+              <span class="kpi-value">4 280 €</span>
+            </div>
+            <div class="kpi">
+              <span class="label">Positions</span>
+              <span class="kpi-value">12</span>
+              <span class="kpi-delta-up" style="color: var(--muted-foreground)">
+                Top 5 · 78 %
+              </span>
+            </div>
+          </div>
+
+          <!-- Classe + Secteur side-by-side -->
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-title">Classe d'actif</div>
+              <div class="alloc" style="margin-top: 14px">
+                <div class="donut-wrap">
+                  <svg viewBox="0 0 36 36" width="140" height="140">
+                    <circle cx="18" cy="18" r="14" fill="none" stroke="var(--muted)" stroke-width="4" />
+                    <circle cx="18" cy="18" r="14" fill="none" stroke="var(--c-action)" stroke-width="4" stroke-dasharray="44 88" transform="rotate(-90 18 18)" />
+                    <circle cx="18" cy="18" r="14" fill="none" stroke="var(--c-etf)" stroke-width="4" stroke-dasharray="26 88" stroke-dashoffset="-44" transform="rotate(-90 18 18)" />
+                    <circle cx="18" cy="18" r="14" fill="none" stroke="var(--c-struct)" stroke-width="4" stroke-dasharray="10 88" stroke-dashoffset="-70" transform="rotate(-90 18 18)" />
+                    <circle cx="18" cy="18" r="14" fill="none" stroke="var(--c-oblig)" stroke-width="4" stroke-dasharray="8 88" stroke-dashoffset="-80" transform="rotate(-90 18 18)" />
+                  </svg>
+                  <div class="donut-center">
+                    <span class="label">Total</span>
+                    <span class="v">523 k</span>
+                  </div>
+                </div>
+                <div class="legend">
+                  <div class="legend-row">
+                    <div class="top">
+                      <span class="dot" style="background: var(--c-action)"></span>
+                      <span class="label-text">Action</span>
+                      <span class="pct">50 %</span>
+                    </div>
+                    <div class="bar"><div class="fill" style="width: 50%; background: var(--c-action)"></div></div>
+                  </div>
+                  <div class="legend-row">
+                    <div class="top">
+                      <span class="dot" style="background: var(--c-etf)"></span>
+                      <span class="label-text">ETF</span>
+                      <span class="pct">29 %</span>
+                    </div>
+                    <div class="bar"><div class="fill" style="width: 29%; background: var(--c-etf)"></div></div>
+                  </div>
+                  <div class="legend-row">
+                    <div class="top">
+                      <span class="dot" style="background: var(--c-struct)"></span>
+                      <span class="label-text">Structuré</span>
+                      <span class="pct">12 %</span>
+                    </div>
+                    <div class="bar"><div class="fill" style="width: 12%; background: var(--c-struct)"></div></div>
+                  </div>
+                  <div class="legend-row">
+                    <div class="top">
+                      <span class="dot" style="background: var(--c-oblig)"></span>
+                      <span class="label-text">Obligation</span>
+                      <span class="pct">9 %</span>
+                    </div>
+                    <div class="bar"><div class="fill" style="width: 9%; background: var(--c-oblig)"></div></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-title">Secteur</div>
+              <div class="card-description">Sur 88 % du portefeuille</div>
+              <div class="alloc" style="margin-top: 14px">
+                <div class="donut-wrap">
+                  <svg viewBox="0 0 36 36" width="140" height="140">
+                    <circle cx="18" cy="18" r="14" fill="none" stroke="var(--muted)" stroke-width="4" />
+                    <circle cx="18" cy="18" r="14" fill="none" stroke="oklch(0.55 0.18 264)" stroke-width="4" stroke-dasharray="36 88" transform="rotate(-90 18 18)" />
+                    <circle cx="18" cy="18" r="14" fill="none" stroke="oklch(0.65 0.16 162)" stroke-width="4" stroke-dasharray="20 88" stroke-dashoffset="-36" transform="rotate(-90 18 18)" />
+                    <circle cx="18" cy="18" r="14" fill="none" stroke="oklch(0.75 0.16 70)" stroke-width="4" stroke-dasharray="14 88" stroke-dashoffset="-56" transform="rotate(-90 18 18)" />
+                    <circle cx="18" cy="18" r="14" fill="none" stroke="oklch(0.6 0.2 303)" stroke-width="4" stroke-dasharray="10 88" stroke-dashoffset="-70" transform="rotate(-90 18 18)" />
+                    <circle cx="18" cy="18" r="14" fill="none" stroke="oklch(0.62 0.22 27)" stroke-width="4" stroke-dasharray="8 88" stroke-dashoffset="-80" transform="rotate(-90 18 18)" />
+                  </svg>
+                  <div class="donut-center">
+                    <span class="label">Classifiés</span>
+                    <span class="v">5</span>
+                  </div>
+                </div>
+                <div class="legend">
+                  <div class="legend-row">
+                    <div class="top">
+                      <span class="dot" style="background: oklch(0.55 0.18 264)"></span>
+                      <span class="label-text">Technologie</span>
+                      <span class="pct">41 %</span>
+                    </div>
+                    <div class="bar"><div class="fill" style="width: 41%; background: oklch(0.55 0.18 264)"></div></div>
+                  </div>
+                  <div class="legend-row">
+                    <div class="top">
+                      <span class="dot" style="background: oklch(0.65 0.16 162)"></span>
+                      <span class="label-text">Consumer Cyclical</span>
+                      <span class="pct">23 %</span>
+                    </div>
+                    <div class="bar"><div class="fill" style="width: 23%; background: oklch(0.65 0.16 162)"></div></div>
+                  </div>
+                  <div class="legend-row">
+                    <div class="top">
+                      <span class="dot" style="background: oklch(0.75 0.16 70)"></span>
+                      <span class="label-text">Healthcare</span>
+                      <span class="pct">16 %</span>
+                    </div>
+                    <div class="bar"><div class="fill" style="width: 16%; background: oklch(0.75 0.16 70)"></div></div>
+                  </div>
+                  <div class="legend-row">
+                    <div class="top">
+                      <span class="dot" style="background: oklch(0.6 0.2 303)"></span>
+                      <span class="label-text">Financial Services</span>
+                      <span class="pct">11 %</span>
+                    </div>
+                    <div class="bar"><div class="fill" style="width: 11%; background: oklch(0.6 0.2 303)"></div></div>
+                  </div>
+                  <div class="legend-row">
+                    <div class="top">
+                      <span class="dot" style="background: oklch(0.62 0.22 27)"></span>
+                      <span class="label-text">Énergie</span>
+                      <span class="pct">9 %</span>
+                    </div>
+                    <div class="bar"><div class="fill" style="width: 9%; background: oklch(0.62 0.22 27)"></div></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Concentration -->
+          <div class="card">
+            <div class="card-title">Concentration</div>
+            <div class="card-description">HHI 1 850 sur 10 000</div>
+            <div class="stack" style="gap: 10px; margin-top: 12px">
+              <div class="conc-row">
+                <div class="top">
+                  <span style="display: flex; align-items: center; gap: 8px">
+                    <span class="num">1</span>
+                    <span>ASML Holding</span>
+                  </span>
+                  <span class="nums" style="font-size: 11px; color: var(--muted-foreground)">+27 %</span>
+                </div>
+                <div class="bar"><div class="fill" style="width: 27%; background: var(--primary)"></div></div>
+              </div>
+              <div class="conc-row">
+                <div class="top">
+                  <span style="display: flex; align-items: center; gap: 8px">
+                    <span class="num">2</span>
+                    <span>iShares MSCI World</span>
+                  </span>
+                  <span class="nums" style="font-size: 11px; color: var(--muted-foreground)">+19 %</span>
+                </div>
+                <div class="bar"><div class="fill" style="width: 19%; background: var(--primary)"></div></div>
+              </div>
+              <div class="conc-row">
+                <div class="top">
+                  <span style="display: flex; align-items: center; gap: 8px">
+                    <span class="num">3</span>
+                    <span>Phoenix Mémoire SX5E</span>
+                  </span>
+                  <span class="nums" style="font-size: 11px; color: var(--muted-foreground)">+10 %</span>
+                </div>
+                <div class="bar"><div class="fill" style="width: 10%; background: var(--primary)"></div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Fundamentals -->
+          <div>
+            <div class="section-head" style="margin-bottom: 10px">
+              <h3>Fondamentaux</h3>
+              <span class="count">Source · Yahoo Finance</span>
+            </div>
+            <div class="stack">
+              <div class="fund-card">
+                <div style="display: flex; align-items: flex-start; gap: 8px">
+                  <div style="flex: 1; min-width: 0">
+                    <div style="font-size: 14px; font-weight: 600">ASML Holding</div>
+                    <div style="margin-top: 4px; display: flex; gap: 6px; align-items: center">
+                      <span class="pill pill-soft">Technology</span>
+                      <span style="font-size: 11px; color: var(--muted-foreground)">ASML.AS</span>
+                    </div>
+                  </div>
+                  <span class="pill pill-up">YTD +28,3 %</span>
+                </div>
+                <div class="grid-3">
+                  <div class="metric"><span class="label">Market cap</span><span class="v">298 B EUR</span></div>
+                  <div class="metric"><span class="label">PER</span><span class="v">42,5</span></div>
+                  <div class="metric"><span class="label">D/E</span><span class="v">0,28</span></div>
+                  <div class="metric"><span class="label">Cash flow</span><span class="v">9,2 B EUR</span></div>
+                  <div class="metric"><span class="label">Free CF</span><span class="v">7,1 B EUR</span></div>
+                  <div class="metric"><span class="label">PER fwd</span><span class="v">32,1</span></div>
+                </div>
+              </div>
+
+              <div class="fund-card">
+                <div style="display: flex; align-items: flex-start; gap: 8px">
+                  <div style="flex: 1; min-width: 0">
+                    <div style="font-size: 14px; font-weight: 600">LVMH</div>
+                    <div style="margin-top: 4px; display: flex; gap: 6px; align-items: center">
+                      <span class="pill pill-soft">Consumer Cyclical</span>
+                      <span style="font-size: 11px; color: var(--muted-foreground)">MC.PA</span>
+                    </div>
+                  </div>
+                  <span class="pill pill-down">YTD −8,4 %</span>
+                </div>
+                <div class="grid-3">
+                  <div class="metric"><span class="label">Market cap</span><span class="v">312 B EUR</span></div>
+                  <div class="metric"><span class="label">PER</span><span class="v">21,7</span></div>
+                  <div class="metric"><span class="label">D/E</span><span class="v">0,44</span></div>
+                  <div class="metric"><span class="label">Cash flow</span><span class="v">17,5 B EUR</span></div>
+                  <div class="metric"><span class="label">Free CF</span><span class="v">10,3 B EUR</span></div>
+                  <div class="metric"><span class="label">PER fwd</span><span class="v">19,8</span></div>
+                </div>
+              </div>
+
+              <div class="fund-card">
+                <div style="display: flex; align-items: flex-start; gap: 8px">
+                  <div style="flex: 1; min-width: 0">
+                    <div style="font-size: 14px; font-weight: 600">Sanofi</div>
+                    <div style="margin-top: 4px; display: flex; gap: 6px; align-items: center">
+                      <span class="pill pill-soft">Healthcare</span>
+                      <span style="font-size: 11px; color: var(--muted-foreground)">SAN.PA</span>
+                    </div>
+                  </div>
+                  <span class="pill pill-up">YTD +6,1 %</span>
+                </div>
+                <div class="grid-3">
+                  <div class="metric"><span class="label">Market cap</span><span class="v">125 B EUR</span></div>
+                  <div class="metric"><span class="label">PER</span><span class="v">14,2</span></div>
+                  <div class="metric"><span class="label">D/E</span><span class="v">0,21</span></div>
+                  <div class="metric"><span class="label">Cash flow</span><span class="v">11,8 B EUR</span></div>
+                  <div class="metric"><span class="label">Free CF</span><span class="v">8,4 B EUR</span></div>
+                  <div class="metric"><span class="label">PER fwd</span><span class="v">12,6</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- IMPORT PREVIEW                                                -->
+      <!-- ============================================================ -->
+      <section class="screen" style="grid-column: 1 / -1">
+        <div class="screen-label">
+          <span>Import preview · /import/portfolio</span>
+          <span>Détection du titulaire · Fondamentaux extraits</span>
+        </div>
+        <div class="screen-body">
+          <div class="card">
+            <div
+              style="
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                font-size: 14px;
+                font-weight: 600;
+              "
+            >
+              🏛 Boursorama Banque
+            </div>
+            <div class="holder-block">
+              <svg
+                class="icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <circle cx="12" cy="8" r="4"></circle>
+                <path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"></path>
+              </svg>
+              <div style="flex: 1; min-width: 0">
+                <div class="label">Titulaire</div>
+                <div class="name">Jean Dupont</div>
+              </div>
+              <span class="meta-chip nums">FR 1234567890</span>
+            </div>
+            <div class="meta-chips">
+              <span class="meta-chip">PEA</span>
+              <span># BO-789541</span>
+              <span>📅 Arrêté du 15 mai 2026</span>
+            </div>
+            <div class="grid-2" style="margin-top: 18px">
+              <div class="kpi">
+                <span class="label">Valeur totale</span>
+                <span class="kpi-value">198 540 €</span>
+              </div>
+              <div class="kpi">
+                <span class="label">Investi</span>
+                <span class="kpi-value">165 200 €</span>
+              </div>
+              <div class="kpi">
+                <span class="label">+/- value latente</span>
+                <span class="kpi-value">+33 340 €</span>
+                <span class="kpi-delta-up">+20,2 %</span>
+              </div>
+              <div class="kpi">
+                <span class="label">Liquidités</span>
+                <span class="kpi-value">3 250 €</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Position rows -->
+          <div class="stack">
+            <div class="row">
+              <span class="stripe" style="background: var(--c-action)"></span>
+              <div class="row-main">
+                <div style="display: flex; align-items: center; gap: 6px">
+                  <span class="row-title">ASML Holding</span>
+                </div>
+                <div class="row-sub">
+                  <span class="type-tag" style="color: var(--c-action)">Action</span>
+                  ASML.AS · NL0010273215
+                </div>
+                <div style="margin-top: 6px">
+                  <span class="pill pill-soft">Technology</span>
+                </div>
+                <div
+                  style="
+                    margin-top: 10px;
+                    display: grid;
+                    grid-template-columns: repeat(3, 1fr);
+                    gap: 6px;
+                    font-size: 11px;
+                  "
+                >
+                  <div class="metric"><span class="label">Quantité</span><span class="v">125</span></div>
+                  <div class="metric"><span class="label">PRU</span><span class="v">680,00 €</span></div>
+                  <div class="metric"><span class="label">Cours</span><span class="v">925,40 €</span></div>
+                </div>
+                <div style="margin-top: 6px; display: flex; align-items: center; gap: 8px">
+                  <div class="bar" style="flex: 1; height: 6px">
+                    <div class="fill" style="width: 58%; background: var(--primary)"></div>
+                  </div>
+                  <span class="nums" style="font-size: 11px; color: var(--muted-foreground); width: 36px; text-align: right">
+                    58 %
+                  </span>
+                </div>
+              </div>
+              <div class="row-value">
+                <span class="pill pill-up">+36,1 %</span>
+                <span class="row-value-main" style="margin-top: 6px">115 675 €</span>
+              </div>
+            </div>
+
+            <div class="row">
+              <span class="stripe" style="background: var(--success)"></span>
+              <div class="row-main">
+                <div class="row-title">iShares Core MSCI World</div>
+                <div class="row-sub">
+                  <span class="type-tag" style="color: var(--success)">ETF</span>
+                  IWDA.AS · IE00B4L5Y983
+                </div>
+                <div
+                  style="
+                    margin-top: 10px;
+                    display: grid;
+                    grid-template-columns: repeat(3, 1fr);
+                    gap: 6px;
+                    font-size: 11px;
+                  "
+                >
+                  <div class="metric"><span class="label">Quantité</span><span class="v">820</span></div>
+                  <div class="metric"><span class="label">PRU</span><span class="v">82,15 €</span></div>
+                  <div class="metric"><span class="label">Cours</span><span class="v">94,30 €</span></div>
+                </div>
+                <div style="margin-top: 6px; display: flex; align-items: center; gap: 8px">
+                  <div class="bar" style="flex: 1; height: 6px">
+                    <div class="fill" style="width: 39%; background: var(--primary)"></div>
+                  </div>
+                  <span class="nums" style="font-size: 11px; color: var(--muted-foreground); width: 36px; text-align: right">
+                    39 %
+                  </span>
+                </div>
+              </div>
+              <div class="row-value">
+                <span class="pill pill-up">+14,8 %</span>
+                <span class="row-value-main" style="margin-top: 6px">77 326 €</span>
+              </div>
+            </div>
+
+            <div class="row">
+              <span class="stripe" style="background: var(--c-action)"></span>
+              <div class="row-main">
+                <div class="row-title">LVMH</div>
+                <div class="row-sub">
+                  <span class="type-tag" style="color: var(--c-action)">Action</span>
+                  MC.PA · FR0000121014
+                </div>
+                <div style="margin-top: 6px">
+                  <span class="pill pill-soft">Consumer Cyclical</span>
+                </div>
+                <div
+                  style="
+                    margin-top: 10px;
+                    display: grid;
+                    grid-template-columns: repeat(3, 1fr);
+                    gap: 6px;
+                    font-size: 11px;
+                  "
+                >
+                  <div class="metric"><span class="label">Quantité</span><span class="v">62</span></div>
+                  <div class="metric"><span class="label">PRU</span><span class="v">735,00 €</span></div>
+                  <div class="metric"><span class="label">Cours</span><span class="v">673,00 €</span></div>
+                </div>
+              </div>
+              <div class="row-value">
+                <span class="pill pill-down">−8,4 %</span>
+                <span class="row-value-main" style="margin-top: 6px">41 726 €</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="footer-actions">
+            <button class="btn">Annuler</button>
+            <button class="btn primary">⬆️ Importer 3 positions</button>
+          </div>
+        </div>
+      </section>
+    </div>
+  </body>
+</html>
