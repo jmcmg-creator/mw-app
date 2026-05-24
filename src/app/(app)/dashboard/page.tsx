@@ -12,7 +12,7 @@ import {
 
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/auth";
-import { getDefaultPortfolio } from "@/lib/portfolio";
+import { getActivePortfolio, listPortfolios } from "@/lib/portfolio";
 import { createClient } from "@/lib/supabase/server";
 import { deleteCashBalance } from "@/actions/setCashBalance";
 import {
@@ -77,7 +77,8 @@ type ImmoRow = {
 
 export default async function DashboardPage() {
   const userId = await requireUserId();
-  const portfolio = await getDefaultPortfolio(userId);
+  const portfolio = await getActivePortfolio(userId);
+  const portfolios = await listPortfolios(userId);
   const assets = await prisma.asset.findMany({
     where: { portfolioId: portfolio.id },
     orderBy: { createdAt: "desc" },
@@ -180,9 +181,21 @@ export default async function DashboardPage() {
       <AutoRefresh />
 
       <header className="flex flex-col gap-2">
-        <span className="text-muted-foreground text-[11px] font-medium tracking-widest uppercase">
-          Patrimoine total
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-muted-foreground text-[11px] font-medium tracking-widest uppercase">
+            Patrimoine total
+          </span>
+          {portfolio.holderName && (
+            <span className="bg-primary/10 text-primary rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wide">
+              {portfolio.holderName}
+            </span>
+          )}
+          {portfolios.length > 1 && (
+            <span className="text-muted-foreground text-[10px] tabular-nums">
+              · {portfolios.length} portefeuilles
+            </span>
+          )}
+        </div>
         <span className="text-4xl font-bold tracking-tight tabular-nums">
           {formatCurrency(totals.value, currency)}
         </span>

@@ -14,6 +14,8 @@ import {
   TrendingDown,
   TrendingUp,
   Upload,
+  User,
+  Users,
   Wallet,
 } from "lucide-react";
 
@@ -136,6 +138,8 @@ function StatementSummary({
 
   const dateRange = formatDateRange(statement.periodStart, statement.periodEnd);
 
+  const isCompany = statement.holderType === "COMPANY";
+
   return (
     <Card>
       <CardHeader>
@@ -143,7 +147,29 @@ function StatementSummary({
           <Building2 className="size-4" />
           {statement.broker ?? "Relevé de portefeuille"}
         </CardTitle>
-        <CardDescription className="flex flex-wrap gap-x-3 gap-y-1">
+        {statement.holderName && (
+          <div className="bg-primary/5 border-primary/15 mt-2 flex items-center gap-2 rounded-lg border px-2.5 py-2">
+            {isCompany ? (
+              <Users className="text-primary size-4 shrink-0" />
+            ) : (
+              <User className="text-primary size-4 shrink-0" />
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="text-muted-foreground text-[10px] font-medium tracking-widest uppercase">
+                {isCompany ? "Société" : "Titulaire"}
+              </p>
+              <p className="truncate text-sm font-semibold">
+                {statement.holderName}
+              </p>
+            </div>
+            {statement.holderTaxId && (
+              <span className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-[10px] font-medium tabular-nums">
+                {statement.holderTaxId}
+              </span>
+            )}
+          </div>
+        )}
+        <CardDescription className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
           {statement.accountType && (
             <span className="bg-muted text-foreground rounded-md px-1.5 py-0.5 text-[11px] font-medium">
               {statement.accountType}
@@ -515,10 +541,17 @@ export default function ImportPortfolioPage() {
           currency: p.currency,
           date: p.date,
         })),
-        extracted.statement.cashBalances.map((c) => ({
-          currency: c.currency,
-          amount: c.amount,
-        })),
+        {
+          cashBalances: extracted.statement.cashBalances.map((c) => ({
+            currency: c.currency,
+            amount: c.amount,
+          })),
+          holder: {
+            holderName: extracted.statement.holderName,
+            holderType: extracted.statement.holderType,
+            holderTaxId: extracted.statement.holderTaxId,
+          },
+        },
       );
       router.push("/dashboard");
       router.refresh();

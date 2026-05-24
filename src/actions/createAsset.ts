@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/auth";
-import { getDefaultPortfolio } from "@/lib/portfolio";
+import { getActivePortfolio } from "@/lib/portfolio";
 import { calculateStockPerformance } from "@/actions/calculateStockPerformance";
 import type { AssetType, Currency } from "@/generated/prisma/enums";
 
@@ -36,7 +36,7 @@ export type CreateAssetInput = {
 /** Creates a market asset, optionally with an opening position. */
 export async function createAsset(input: CreateAssetInput): Promise<string> {
   const userId = await requireUserId();
-  const portfolio = await getDefaultPortfolio(userId);
+  const portfolio = await getActivePortfolio(userId);
 
   const asset = await prisma.asset.create({
     data: {

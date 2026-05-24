@@ -1,8 +1,15 @@
 "use server";
 
+import { cookies } from "next/headers";
+
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/auth";
-import { getDefaultPortfolio } from "@/lib/portfolio";
+import {
+  ACTIVE_PORTFOLIO_COOKIE,
+  findOrCreateHolderPortfolio,
+  getActivePortfolio,
+  type HolderInput,
+} from "@/lib/portfolio";
 import { calculateStockPerformance } from "@/actions/calculateStockPerformance";
 import type { AssetType, Currency } from "@/generated/prisma/enums";
 
@@ -25,6 +32,9 @@ export type CashImportInput = {
 };
 
 export type ImportResult = {
+  portfolioId: string;
+  portfolioCreated: boolean;
+  holderName: string | null;
   assetsCreated: number;
   assetsExisting: number;
   transactions: number;
@@ -32,18 +42,41 @@ export type ImportResult = {
 };
 
 /**
- * Bulk-imports positions from a parsed portfolio statement. Existing
- * assets are matched by ISIN then ticker; new ones are created. Each
- * position creates a BUY transaction and the PRU is recomputed.
+ * Bulk-imports positions from a parsed portfolio statement. The target
+ * portfolio is selected based on the detected holder identity: if the doc
+ * names a holder (individual or company), the matching portfolio is used
+ * (created on first sight), so each holder's positions stay isolated.
+ * Existing assets within the portfolio are matched by ISIN then ticker.
  */
 export async function importPortfolio(
   positions: PortfolioImportInput[],
-  cashBalances: CashImportInput[] = [],
+  options: {
+    cashBalances?: CashImportInput[];
+    holder?: HolderInput;
+  } = {},
 ): Promise<ImportResult> {
   const userId = await requireUserId();
-  const portfolio = await getDefaultPortfolio(userId);
+  const cashBalances = options.cashBalances ?? [];
+  const holder = options.holder;
+
+  const target =
+    holder && holder.holderName?.trim()
+      ? await findOrCreateHolderPortfolio(userId, holder, {
+          name: holder.holderName,
+        })
+      : await (async () => {
+          const current = await getActivePortfolio(userId);
+          return {
+            id: current.id,
+            baseCurrency: current.baseCurrency,
+            isNew: false,
+          };
+        })();
 
   const result: ImportResult = {
+    portfolioId: target.id,
+    portfolioCreated: target.isNew,
+    holderName: holder?.holderName?.trim() || null,
     assetsCreated: 0,
     assetsExisting: 0,
     transactions: 0,
@@ -57,20 +90,20 @@ export async function importPortfolio(
     let asset: { id: string; currency: Currency } | null = null;
     if (position.isin) {
       const found = await prisma.asset.findFirst({
-        where: { portfolioId: portfolio.id, isin: position.isin },
+        where: { portfolioId: target.id, isin: position.isin },
       });
       if (found) asset = { id: found.id, currency: found.currency };
     }
     if (!asset && position.ticker) {
       const found = await prisma.asset.findFirst({
-        where: { portfolioId: portfolio.id, ticker: position.ticker },
+        where: { portfolioId: target.id, ticker: position.ticker },
       });
       if (found) asset = { id: found.id, currency: found.currency };
     }
     if (!asset) {
       const created = await prisma.asset.create({
         data: {
-          portfolioId: portfolio.id,
+          portfolioId: target.id,
           type: position.type ?? "ACTION",
           name: position.name.trim(),
           ticker: position.ticker?.trim() || null,
@@ -100,7 +133,6 @@ export async function importPortfolio(
         amountInBaseCurrency: amount,
       },
     });
-    // Last-seen market price wins; null means "no override".
     const previous = touched.get(asset.id);
     const next =
       position.currentPrice != null && Number.isFinite(position.currentPrice)
@@ -122,12 +154,12 @@ export async function importPortfolio(
     await prisma.cashBalance.upsert({
       where: {
         portfolioId_currency: {
-          portfolioId: portfolio.id,
+          portfolioId: target.id,
           currency: cash.currency,
         },
       },
       create: {
-        portfolioId: portfolio.id,
+        portfolioId: target.id,
         currency: cash.currency,
         amount: cash.amount,
       },
@@ -135,6 +167,15 @@ export async function importPortfolio(
     });
     result.cashBalances += 1;
   }
+
+  // Switch the UI to the portfolio we just wrote into.
+  const store = await cookies();
+  store.set(ACTIVE_PORTFOLIO_COOKIE, target.id, {
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 365,
+  });
 
   return result;
 }

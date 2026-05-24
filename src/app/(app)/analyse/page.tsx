@@ -3,7 +3,7 @@ import { ArrowLeft, TrendingDown, TrendingUp } from "lucide-react";
 
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/auth";
-import { getDefaultPortfolio } from "@/lib/portfolio";
+import { getActivePortfolio } from "@/lib/portfolio";
 import {
   ASSET_TYPE_LABELS,
   formatCurrency,
@@ -112,7 +112,7 @@ function Kpi({
 
 export default async function AnalysePage() {
   const userId = await requireUserId();
-  const portfolio = await getDefaultPortfolio(userId);
+  const portfolio = await getActivePortfolio(userId);
   const baseCurrency = portfolio.baseCurrency;
 
   const rawAssets = await prisma.asset.findMany({

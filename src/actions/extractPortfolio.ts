@@ -58,6 +58,24 @@ const statementSchema = z.object({
     .string()
     .nullable()
     .describe("Courtier émetteur du document si identifiable"),
+  holderName: z
+    .string()
+    .nullable()
+    .describe(
+      "Nom du titulaire du compte (personne physique ou raison sociale)",
+    ),
+  holderType: z
+    .enum(["INDIVIDUAL", "COMPANY"])
+    .nullable()
+    .describe(
+      "INDIVIDUAL si personne physique, COMPANY si société/SCI/SARL/SAS",
+    ),
+  holderTaxId: z
+    .string()
+    .nullable()
+    .describe(
+      "Identifiant fiscal du titulaire si présent (SIREN, SIRET, n° fiscal)",
+    ),
   accountNumber: z
     .string()
     .nullable()
@@ -130,11 +148,14 @@ export async function extractPortfolio(
   const instruction =
     "Tu lis un relevé de portefeuille (courtier, banque, assurance-vie). " +
     "Renvoie TOUTES les informations utiles présentes dans le document.\n\n" +
-    "**statement** — métadonnées du relevé (broker, numéro de compte, type " +
-    "de compte PEA/CTO/AV, date d'arrêté, période, devise de référence, " +
-    "valorisation totale, montant investi, plus/moins-value latente totale, " +
-    "liquidités par devise). Les champs absents → null (ou tableau vide " +
-    "pour cashBalances).\n\n" +
+    "**statement** — métadonnées du relevé (broker, holderName = nom du " +
+    "titulaire personne physique OU raison sociale, holderType = INDIVIDUAL " +
+    "ou COMPANY selon que c'est une personne ou une société, holderTaxId si " +
+    "présent (SIREN/SIRET/n° fiscal), numéro de compte, type de compte " +
+    "PEA/CTO/AV, date d'arrêté, période, devise de référence, valorisation " +
+    "totale, montant investi, plus/moins-value latente totale, liquidités " +
+    "par devise). Les champs absents → null (ou tableau vide pour " +
+    "cashBalances).\n\n" +
     "**positions** — pour CHAQUE ligne détenue (ignore cash, frais, totaux) :" +
     " name, ticker, isin (12 car), type (ACTION/ETF/OBLIGATION/STRUCTURE), " +
     "sector (technologie, santé, énergie...), quantity, unitPrice (PRU), " +
