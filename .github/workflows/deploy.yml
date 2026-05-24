@@ -71,6 +71,22 @@ jobs:
             [ -f .vercel/.env.production.local ] && . .vercel/.env.production.local
             set +a
           fi
+
+          # Validate the URL format before hitting Supabase — the most common
+          # mistake is using the bare `postgres` user on the pooler host.
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::DATABASE_URL is empty. Add it as a GitHub Secret."
+            exit 1
+          fi
+          USERNAME=$(printf '%s' "$DATABASE_URL" | sed -E 's|^postgresql://([^:@/]+).*|\1|')
+          HOST=$(printf '%s' "$DATABASE_URL" | sed -E 's|^[^@]+@([^:/]+).*|\1|')
+          echo "Connecting as user '$USERNAME' to host '$HOST'"
+          if [[ "$HOST" == *.pooler.supabase.com ]] && [[ "$USERNAME" != *.* ]]; then
+            echo "::error::Pooler hosts require the username 'postgres.<project_ref>' (with a dot), not just '$USERNAME'."
+            echo "::error::Open Supabase → Settings → Database → Connection string → Session pooler tab, and copy that URI exactly."
+            exit 1
+          fi
+
           npx prisma migrate deploy
 
       - name: Build (preview)
