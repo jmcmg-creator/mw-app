@@ -1,0 +1,73 @@
+name: Deploy
+
+# Auto-deploys every push to the active dev branch and to main. Runs the
+# Prisma migration first (via `vercel-build`), so schema changes apply
+# atomically with the code that depends on them.
+#
+# One-time setup (see README) — add these secrets in the repo settings:
+#   - VERCEL_TOKEN         https://vercel.com/account/tokens
+#   - VERCEL_ORG_ID        Vercel project Settings → General
+#   - VERCEL_PROJECT_ID    Vercel project Settings → General
+
+on:
+  push:
+    branches:
+      - main
+      - "claude/**"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy to Vercel
+    runs-on: ubuntu-latest
+    if: ${{ vars.DEPLOY_ENABLED == 'true' }}
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Pull Vercel env (preview)
+        if: github.ref != 'refs/heads/main'
+        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Pull Vercel env (production)
+        if: github.ref == 'refs/heads/main'
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build (preview)
+        if: github.ref != 'refs/heads/main'
+        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build (production)
+        if: github.ref == 'refs/heads/main'
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy (preview)
+        if: github.ref != 'refs/heads/main'
+        id: deploy_preview
+        run: |
+          URL=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          echo "Preview deployed: $URL" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Deploy (production)
+        if: github.ref == 'refs/heads/main'
+        id: deploy_prod
+        run: |
+          URL=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          echo "Production deployed: $URL" >> "$GITHUB_STEP_SUMMARY"
