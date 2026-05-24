@@ -73,6 +73,14 @@ enum HolderType {
   COMPANY
 }
 
+enum CouponFrequency {
+  ANNUAL
+  SEMI_ANNUAL
+  QUARTERLY
+  MONTHLY
+  ZERO_COUPON
+}
+
 enum DocumentType {
   ACTE_VENTE
   BAIL
@@ -208,12 +216,36 @@ model Asset {
   portfolio         Portfolio                 @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
   transactions      Transaction[]
   structuredDetails StructuredProductDetails?
+  bondDetails       BondDetails?
   loans             Loan[]
   documents         Document[]
 
   @@index([portfolioId])
   @@index([ticker])
   @@map("assets")
+}
+
+// 1:1 extension of an Asset of type OBLIGATION. Holds the contractual cash
+// flow parameters: coupon, frequency, nominal and maturity. Used to project
+// future coupons and redemption on the "flux à venir" calendar.
+model BondDetails {
+  id              String          @id @default(uuid()) @db.Uuid
+  assetId         String          @unique @map("asset_id") @db.Uuid
+  couponRate      Decimal         @map("coupon_rate") @db.Decimal(8, 6)
+  couponFrequency CouponFrequency @default(ANNUAL) @map("coupon_frequency")
+  nominalAmount   Decimal?        @map("nominal_amount") @db.Decimal(18, 2)
+  issueDate       DateTime?       @map("issue_date")
+  maturityDate    DateTime        @map("maturity_date")
+  // Anchor for the next coupon — when null we infer it from maturityDate
+  // and the frequency.
+  nextCouponDate  DateTime?       @map("next_coupon_date")
+  issuer          String?
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+
+  asset Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@map("bond_details")
 }
 
 // ---------------------------------------------------------------------------

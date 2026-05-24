@@ -44,6 +44,13 @@ export function HoldingRow({
   const positive = holding.unrealizedPnl >= 0;
   const stripeColor = TYPE_COLORS[holding.type] ?? TYPE_COLORS.SECURISE;
 
+  let perfClass = "text-muted-foreground text-xs tabular-nums";
+  if (holding.hasMarketPrice && holding.invested > 0) {
+    perfClass = positive
+      ? "text-success text-xs font-medium tabular-nums"
+      : "text-destructive text-xs font-medium tabular-nums";
+  }
+
   return (
     <Link
       href={href}
@@ -80,18 +87,10 @@ export function HoldingRow({
         <span className="text-sm font-semibold tabular-nums">
           {formatCurrency(value, holding.currency)}
         </span>
-        {holding.hasMarketPrice && holding.invested > 0 ? (
-          <span
-            className={
-              positive
-                ? "text-success text-xs font-medium tabular-nums"
-                : "text-destructive text-xs font-medium tabular-nums"
-            }
-          >
+        {holding.invested > 0 && (
+          <span className={perfClass}>
             {formatPercent(holding.unrealizedPnlPct)}
           </span>
-        ) : (
-          <span className="text-muted-foreground text-xs">—</span>
         )}
       </div>
     </Link>

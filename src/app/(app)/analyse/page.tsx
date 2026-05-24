@@ -49,6 +49,13 @@ import {
 import { HoldingRow } from "@/components/holding-row";
 import { FundamentalsCard } from "@/components/fundamentals-card";
 import { AutoRefresh } from "@/components/auto-refresh";
+import { CashFlowCalendar } from "@/components/cash-flow-calendar";
+import {
+  groupByMonth,
+  projectBondCashFlows,
+  projectStructuredCashFlows,
+} from "@/lib/cashflows";
+import { backfillBondDetails } from "@/actions/backfillBondDetails";
 
 const ALLOCATION_COLORS: Record<string, string> = {
   ACTION: "oklch(0.55 0.18 264)",
@@ -115,6 +122,10 @@ export default async function AnalysePage() {
   const portfolio = await getActivePortfolio(userId);
   const baseCurrency = portfolio.baseCurrency;
 
+  // Best-effort: parse coupon/maturity from bond names so the cash flow
+  // calendar surfaces something on first load without manual editing.
+  await backfillBondDetails(portfolio.id);
+
   const rawAssets = await prisma.asset.findMany({
     where: {
       portfolioId: portfolio.id,
@@ -122,12 +133,47 @@ export default async function AnalysePage() {
     },
     include: {
       transactions: { orderBy: { date: "desc" } },
-      structuredDetails: true,
+      structuredDetails: {
+        include: {
+          observationDates: { orderBy: { observationDate: "asc" } },
+        },
+      },
+      bondDetails: true,
     },
   });
 
   const holdings = rawAssets.map((asset) => buildHolding(asset as RawAsset));
   const metrics = computePortfolioMetrics(holdings);
+
+  const now = new Date();
+  const cashFlows = rawAssets.flatMap((a) => {
+    if (a.type === "OBLIGATION")
+      return projectBondCashFlows(
+        {
+          id: a.id,
+          name: a.name,
+          currency: a.currency,
+          bondDetails: a.bondDetails,
+          cachedQuantity: a.cachedQuantity,
+          cachedPru: a.cachedPru,
+        },
+        now,
+      );
+    if (a.type === "STRUCTURE")
+      return projectStructuredCashFlows(
+        {
+          id: a.id,
+          name: a.name,
+          currency: a.currency,
+          structuredDetails: a.structuredDetails,
+          cachedQuantity: a.cachedQuantity,
+          cachedPru: a.cachedPru,
+        },
+        now,
+      );
+    return [];
+  });
+  const cashFlowMonths = groupByMonth(cashFlows);
 
   // Tickerable assets (those we can ask Yahoo about). Skip fully-sold positions.
   const tickered = rawAssets.filter(
@@ -287,22 +333,18 @@ export default async function AnalysePage() {
         />
         <Kpi
           label="+/- value"
-          value={
-            metrics.hasAnyMarketPrice
-              ? formatCurrency(metrics.unrealizedPnl, baseCurrency)
-              : "—"
-          }
+          value={formatCurrency(metrics.unrealizedPnl, baseCurrency)}
           delta={
-            metrics.hasAnyMarketPrice
-              ? `${formatPercent(metrics.unrealizedPnlPct)}${
-                  metrics.pricedCoverage < 0.999
-                    ? ` · sur ${formatPercent(metrics.pricedCoverage)}`
-                    : ""
-                }`
-              : "Aucun prix marché"
+            metrics.hasAnyMarketPrice && metrics.pricedCoverage < 0.999
+              ? `${formatPercent(metrics.unrealizedPnlPct)} · sur ${formatPercent(metrics.pricedCoverage)}`
+              : formatPercent(metrics.unrealizedPnlPct)
           }
           positive={
-            metrics.hasAnyMarketPrice ? metrics.unrealizedPnl >= 0 : undefined
+            metrics.unrealizedPnl > 0
+              ? true
+              : metrics.unrealizedPnl < 0
+                ? false
+                : undefined
           }
         />
         <Kpi
@@ -537,6 +579,8 @@ export default async function AnalysePage() {
           </div>
         )}
       </section>
+
+      <CashFlowCalendar months={cashFlowMonths} baseCurrency={baseCurrency} />
 
       {hasAnyFundamentals && (
         <section className="flex flex-col gap-3">
