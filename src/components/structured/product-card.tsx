@@ -235,16 +235,28 @@ export function ProductCard({ metrics }: { metrics: ProductMetrics }) {
           <ScenariosPanel scenarios={metrics.scenarios} />
         </div>
 
-        {/* Footer link */}
-        <a
-          href={`/assets/${p.id}`}
-          className="border-t bg-slate-50/60 px-5 py-3 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-100"
-        >
-          <span className="flex items-center justify-between">
-            Détail de l&apos;actif
-            <ChevronRight className="size-4" />
-          </span>
-        </a>
+        {/* Footer link — only real assets have a detail page to navigate to.
+            Demo products use synthetic ids that would resolve to a 404. */}
+        {p.demo ? (
+          <div className="border-t bg-slate-50/60 px-5 py-3 text-xs font-medium text-slate-500">
+            <span className="flex items-center justify-between">
+              Produit de démonstration
+              <span className="inline-flex items-center rounded bg-slate-200 px-1.5 py-0.5 text-[9px] font-semibold tracking-wide text-slate-600 uppercase">
+                Demo
+              </span>
+            </span>
+          </div>
+        ) : (
+          <a
+            href={`/assets/${p.id}`}
+            className="border-t bg-slate-50/60 px-5 py-3 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-100"
+          >
+            <span className="flex items-center justify-between">
+              Détail de l&apos;actif
+              <ChevronRight className="size-4" />
+            </span>
+          </a>
+        )}
       </CardContent>
     </Card>
   );
