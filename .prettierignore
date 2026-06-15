@@ -6,5 +6,6 @@ coverage
 package-lock.json
 next-env.d.ts
 design-reference
+design-reference-synapse
 prisma/migrations
 src/generated

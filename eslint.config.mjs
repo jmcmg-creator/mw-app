@@ -13,6 +13,9 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
     "src/generated/**",
+    // Design reference packages — JSX prototypes, not project code.
+    "design-reference/**",
+    "design-reference-synapse/**",
   ]),
 ]);
 
