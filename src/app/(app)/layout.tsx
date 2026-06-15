@@ -21,11 +21,15 @@ export default async function AppLayout({
     redirect("/login");
   }
 
-  const { data: aal } =
-    await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-  if (aal?.currentLevel === "aal1" && aal.nextLevel === "aal2") {
-    redirect("/verify-2fa");
-  }
+  // 2FA enforcement temporarily disabled during the redesign — accounts
+  // that already enrolled a TOTP factor can still use it, we just don't
+  // force the verification step. Re-enable once /settings 2FA tooling is
+  // hardened.
+  // const { data: aal } =
+  //   await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  // if (aal?.currentLevel === "aal1" && aal.nextLevel === "aal2") {
+  //   redirect("/verify-2fa");
+  // }
 
   const [active, portfolios] = await Promise.all([
     getActivePortfolio(user.id),
