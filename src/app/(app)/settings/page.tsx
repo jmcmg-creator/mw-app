@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { ProfileForm } from "./_components/profile-form";
+import { ChangePasswordForm } from "./_components/change-password-form";
 import { TwoFactorCard } from "./_components/two-factor-card";
 
 export default async function SettingsPage() {
@@ -21,6 +22,8 @@ export default async function SettingsPage() {
         fullName={dbUser?.fullName ?? ""}
         baseCurrency={dbUser?.baseCurrency ?? "EUR"}
       />
+
+      <ChangePasswordForm />
 
       <TwoFactorCard />
     </div>
