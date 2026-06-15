@@ -3,77 +3,126 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * Synapse Wealth Management design tokens — Direction A (Héritage Synapse).
+ * Source: design-reference-synapse/directions/tokens.jsx (SYN_LIGHT / SYN_DARK).
+ *
+ * Brand accents kept consistent across themes: gold = brand, teal = positive,
+ * red = negative, amber = watch, blue = entity links / look-through.
+ *
+ * Shadcn variable names are mapped onto Synapse roles:
+ *   --background ← page         --foreground ← text
+ *   --card       ← card         --popover    ← card
+ *   --primary    ← gold (brand) --secondary  ← cardAlt
+ *   --muted      ← cardAlt      --accent     ← goldDim
+ *   --success ← teal · --destructive ← red · --warning ← amber
+ *   --border ← border           --ring ← gold
+ *
+ * Chart slots reuse the allocation palette (immo, coté, PE, priv, cash).
+ */
+
 :root {
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.129 0.042 264.695);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.129 0.042 264.695);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.129 0.042 264.695);
-  --primary: oklch(0.208 0.042 265.755);
-  --primary-foreground: oklch(0.984 0.003 247.858);
-  --secondary: oklch(0.968 0.007 247.896);
-  --secondary-foreground: oklch(0.208 0.042 265.755);
-  --muted: oklch(0.968 0.007 247.896);
-  --muted-foreground: oklch(0.554 0.046 257.417);
-  --accent: oklch(0.968 0.007 247.896);
-  --accent-foreground: oklch(0.208 0.042 265.755);
-  --destructive: oklch(0.577 0.245 27.325);
-  --success: oklch(0.627 0.17 149.214);
-  --warning: oklch(0.769 0.188 70.08);
-  --border: oklch(0.929 0.013 255.508);
-  --input: oklch(0.929 0.013 255.508);
-  --ring: oklch(0.704 0.04 256.788);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.984 0.003 247.858);
-  --sidebar-foreground: oklch(0.129 0.042 264.695);
-  --sidebar-primary: oklch(0.208 0.042 265.755);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.968 0.007 247.896);
-  --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
-  --sidebar-border: oklch(0.929 0.013 255.508);
-  --sidebar-ring: oklch(0.704 0.04 256.788);
+
+  /* SYN_LIGHT */
+  --background: #f6f7f9;
+  --foreground: #15202f;
+  --card: #ffffff;
+  --card-foreground: #15202f;
+  --card-alt: #fafbfc;
+  --popover: #ffffff;
+  --popover-foreground: #15202f;
+  --primary: #a37e33;
+  --primary-foreground: #ffffff;
+  --secondary: #fafbfc;
+  --secondary-foreground: #15202f;
+  --muted: #fafbfc;
+  --muted-foreground: #5f6b7e;
+  --text-faint: #98a2b3;
+  --accent: rgba(163, 126, 51, 0.1);
+  --accent-foreground: #a37e33;
+  --destructive: #c7484b;
+  --destructive-foreground: #ffffff;
+  --success: #0e9a72;
+  --success-foreground: #ffffff;
+  --warning: #b07f1f;
+  --warning-foreground: #ffffff;
+  --info: #2873c4;
+  --info-foreground: #ffffff;
+  --border: #e4e7ec;
+  --border-soft: #edf0f4;
+  --input: #e4e7ec;
+  --ring: #a37e33;
+  --row-hover: #f3f5f8;
+  --th-bg: #f2f4f7;
+
+  /* Allocation palette */
+  --chart-1: #a37e33; /* immo  */
+  --chart-2: #0e9a72; /* coté  */
+  --chart-3: #2873c4; /* pe    */
+  --chart-4: #7a5bbf; /* priv  */
+  --chart-5: #98a2b3; /* cash  */
+
+  /* Sidebar (Direction A shell) */
+  --sidebar: #ffffff;
+  --sidebar-foreground: #15202f;
+  --sidebar-primary: #a37e33;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: rgba(163, 126, 51, 0.1);
+  --sidebar-accent-foreground: #a37e33;
+  --sidebar-border: #e4e7ec;
+  --sidebar-ring: #a37e33;
 }
 
 .dark {
-  --background: oklch(0.129 0.042 264.695);
-  --foreground: oklch(0.984 0.003 247.858);
-  --card: oklch(0.208 0.042 265.755);
-  --card-foreground: oklch(0.984 0.003 247.858);
-  --popover: oklch(0.208 0.042 265.755);
-  --popover-foreground: oklch(0.984 0.003 247.858);
-  --primary: oklch(0.929 0.013 255.508);
-  --primary-foreground: oklch(0.208 0.042 265.755);
-  --secondary: oklch(0.279 0.041 260.031);
-  --secondary-foreground: oklch(0.984 0.003 247.858);
-  --muted: oklch(0.279 0.041 260.031);
-  --muted-foreground: oklch(0.704 0.04 256.788);
-  --accent: oklch(0.279 0.041 260.031);
-  --accent-foreground: oklch(0.984 0.003 247.858);
-  --destructive: oklch(0.704 0.191 22.216);
-  --success: oklch(0.696 0.17 149.214);
-  --warning: oklch(0.769 0.188 70.08);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.551 0.027 264.364);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.208 0.042 265.755);
-  --sidebar-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.279 0.041 260.031);
-  --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.551 0.027 264.364);
+  /* SYN_DARK */
+  --background: #0b0f16;
+  --foreground: #e9edf4;
+  --card: #10151f;
+  --card-foreground: #e9edf4;
+  --card-alt: #0d121a;
+  --popover: #10151f;
+  --popover-foreground: #e9edf4;
+  --primary: #c9a45c;
+  --primary-foreground: #0b0f16;
+  --secondary: #0d121a;
+  --secondary-foreground: #e9edf4;
+  --muted: #0d121a;
+  --muted-foreground: #8b95a7;
+  --text-faint: #5c6678;
+  --accent: rgba(201, 164, 92, 0.12);
+  --accent-foreground: #c9a45c;
+  --destructive: #e8696b;
+  --destructive-foreground: #0b0f16;
+  --success: #3fd6a4;
+  --success-foreground: #0b0f16;
+  --warning: #d9a441;
+  --warning-foreground: #0b0f16;
+  --info: #5ba3ea;
+  --info-foreground: #0b0f16;
+  --border: #1d2533;
+  --border-soft: #161d29;
+  --input: #1d2533;
+  --ring: #c9a45c;
+  --row-hover: #131927;
+  --th-bg: #0e131c;
+
+  /* Allocation palette */
+  --chart-1: #c9a45c; /* immo  */
+  --chart-2: #3fd6a4; /* coté  */
+  --chart-3: #5ba3ea; /* pe    */
+  --chart-4: #9a7bd0; /* priv  */
+  --chart-5: #5c6678; /* cash  */
+
+  /* Sidebar (Direction A shell) */
+  --sidebar: #070a10;
+  --sidebar-foreground: #e9edf4;
+  --sidebar-primary: #c9a45c;
+  --sidebar-primary-foreground: #0b0f16;
+  --sidebar-accent: rgba(201, 164, 92, 0.12);
+  --sidebar-accent-foreground: #c9a45c;
+  --sidebar-border: #161d29;
+  --sidebar-ring: #c9a45c;
 }
 
 @theme inline {
@@ -81,10 +130,12 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
+  --color-card-alt: var(--card-alt);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
@@ -93,14 +144,23 @@
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
+  --color-text-faint: var(--text-faint);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
   --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
   --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
   --color-border: var(--border);
+  --color-border-soft: var(--border-soft);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-row-hover: var(--row-hover);
+  --color-th-bg: var(--th-bg);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -114,8 +174,11 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+
+  --font-sans: var(--font-sans, "IBM Plex Sans"), system-ui, sans-serif;
+  --font-serif: var(--font-serif, "Cormorant Garamond"), serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+
   --breakpoint-xs: 25rem;
 }
 
@@ -125,6 +188,7 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-variant-numeric: tabular-nums; /* Synapse spec: always-on for finance UI. */
     -webkit-tap-highlight-color: transparent;
   }
   html {
